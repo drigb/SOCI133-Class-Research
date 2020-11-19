@@ -1,0 +1,696 @@
+---
+title: "SOCI 133 Fall 2020 - Class Research"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: scroll
+    theme: united
+---
+
+<style>
+.colored {
+  background-color: #e4e2d8;
+}
+</style>
+
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(crosstalk)
+library(hrbrthemes)
+library(gmodels)
+library(flexdashboard)
+library(plotly)
+library(leaflet)
+library(numform)
+library(USAboundaries)
+library(gridExtra)
+library(ggmap)
+library(DT)
+library(knitr)
+library(tigris)
+library(devtools)
+library(rappdirs)
+library(leaflet)
+library(htmlwidgets)
+library(sp)
+library(dplyr)
+library(rgeos)
+library(rgdal)
+library(maptools)
+library(sf)
+library(spdep)
+library(mapview)
+library(USAboundariesData)
+library(broom)
+library(hrbrthemes)
+
+
+```
+
+
+
+```{r, include=FALSE}
+filename <- 'https://davidrigbysociology.s3.amazonaws.com/anes_1946-2016.csv' # Paste the file location for the data set between this set of quotation marks and run this code
+
+#   d) Read the data file into R and assign it in an object named anes
+anes <- read.csv(filename, stringsAsFactors = FALSE)
+
+```
+
+Political Engagement {data-orientation=rows} 
+===========================================================
+
+Row {.tabset .tabset-fade data-height=600}
+--------------------------------------------------------
+
+### Partisanship & Campaign Event Attendance - Kate Bailey
+
+My research allows for a deeper understanding of American politics and suggests which citizens are likely to be the most engaged. I was motivated to ask the question because I had been discussing politics with a family member who is registered as an independent. The family member happened to be uninterested in the campaign rally happening down the street, neither strongly disliking the candidate, nor liking them to the point they wished to attend. This was strange to me as most other individuals in my life (who happen to be strong partisans) would have either jumped on the chance to attend or stayed as far away from the area as they could. I feel it is important to measure as American politics are so hostile right now, that the country could learn from the proven “indifference” of registered independents. 
+
+My research speaks to the themes of political engagement, sorting, and polarization. Political engagement is a given, as attending campaign rallies is a direct indication of engagement. Sorting comes into play when people allow themselves to be allocated into the role of strong democrat or strong republican and thoroughly enjoy the social aspect of it. These groups are usually at conflict with each other forcing them to ideologically separate from another. This also deals with polarization as the sorting causes a political divide. 
+
+### Partisanship & Event Attendance (Time Trend)
+```{r}
+poldata <- anes
+poldata$Age[poldata$Age=="97. 97 years old (1952, 1974, 1996 and later: or older); 2012,2016: 90"] <- 97
+poldata$Age[poldata$Age=="98. 98 years old (1958-1962, 1966, 1968: or older)"] <- 98
+poldata$Age[poldata$Age=="99. 99 years old (1976-1990,1994,2002: or older)"] <- 99
+poldata$Age <- as.numeric(poldata$Age)
+
+# Political Activity
+poldata$Political_Activity[poldata$campaign_activity_count=="1. Lowest level of participation (none)"] <- 1
+poldata$Political_Activity[poldata$campaign_activity_count=="2"] <- 2
+poldata$Political_Activity[poldata$campaign_activity_count=="3"] <- 3
+poldata$Political_Activity[poldata$campaign_activity_count=="4"] <- 4
+poldata$Political_Activity[poldata$campaign_activity_count=="5"] <- 5
+poldata$Political_Activity[poldata$campaign_activity_count=="6. Highest level of participation in campaign activities"] <- 6
+
+#Respondent's Partisan ID
+poldata$party_3[poldata$Party_ID_3=="1. Democrats (including leaners)"] <- 1
+poldata$party_3[poldata$Party_ID_3=="2. Independents"] <- 2
+poldata$party_3[poldata$Party_ID_3=="3. Republicans (including leaners)"] <- 2
+
+
+# Male
+poldata$Female[poldata$Gender=="2. Female"] <- 1
+poldata$Female[poldata$Gender=="1. Male"] <- 0
+
+# Race
+poldata$Black <- 0
+poldata$Black[poldata$Race_4=="2. Black non-Hispanic"] <- 1
+poldata$White <- 0
+poldata$White[poldata$Race_4=="1. White non-Hispanic"] <- 1
+poldata$Latino <- 0
+poldata$Latino[poldata$Race_4=="3. Hispanic"] <- 1
+
+# Education
+poldata$Grade_School <- 0
+poldata$Grade_School[poldata$Education_4=="1. Grade school or less (0-8 grades)"] <- 1
+poldata$High_School <- 0
+poldata$High_School[poldata$Education_4=="2. High school (12 grades or fewer, incl. non-college"] <- 1
+poldata$Some_College <- 0
+poldata$Some_College[poldata$Education_4=="3. Some college (13 grades or more but no degree;"] <- 1
+poldata$College <- 0
+poldata$College[poldata$Education_4=="4. College or advanced degree (no cases 1948)"] <- 1
+
+# Household Income Distribution
+poldata$HHIncome[poldata$Family_Income_Group=="1. 0 to 16 percentile"] <- 1
+poldata$HHIncome[poldata$Family_Income_Group=="2. 17 to 33 percentile"] <- 2
+poldata$HHIncome[poldata$Family_Income_Group=="3. 34 to 67 percentile"] <- 3
+poldata$HHIncome[poldata$Family_Income_Group=="4. 68 to 95 percentile"] <- 4
+poldata$HHIncome[poldata$Family_Income_Group=="5. 96 to 100 percentile"] <- 5
+
+
+# Race
+poldata$Black <- 0
+poldata$Black[poldata$Race_4=="2. Black non-Hispanic"] <- 1
+poldata$White <- 0
+poldata$White[poldata$Race_4=="1. White non-Hispanic"] <- 1
+poldata$Latino <- 0
+poldata$Latino[poldata$Race_4=="3. Hispanic"] <- 1
+
+
+# Party Identification
+poldata$Republican[poldata$Party_ID_7=="3. Independent - Democrat" |poldata$Party_ID_7=="2. Weak Democrat"|poldata$Party_ID_7=="1. Strong Democrat"] <- 0
+poldata$Republican[poldata$Party_ID_7=="5. Independent - Republican" |poldata$Party_ID_7=="6. Weak Republican"|poldata$Party_ID_7=="7. Strong Republican"] <- 1
+
+poldata$Democrat[poldata$Party_ID_7=="3. Independent - Democrat"   |poldata$Party_ID_7=="2. Weak Democrat"  |poldata$Party_ID_7=="1. Strong Democrat"] <- 1
+poldata$Democrat[poldata$Party_ID_7=="5. Independent - Republican" |poldata$Party_ID_7=="6. Weak Republican"|poldata$Party_ID_7=="7. Strong Republican"] <- 0
+
+# Do people live in cities, suburbs, or rural areas?
+# City
+poldata$City[poldata$Urban=="1. Central cities"] <- 1
+poldata$City[poldata$Urban=="2. Suburban areas"|poldata$Urban=="3. Rural, small towns, outlying and adjacent areas"] <- 0
+
+# Suburbs
+poldata$Suburb[poldata$Urban=="2. Suburban areas"] <- 1
+poldata$Suburb[poldata$Urban=="1. Central cities"|poldata$Urban=="3. Rural, small towns, outlying and adjacent areas"] <- 0
+
+# Rural
+poldata$Rural[poldata$Urban=="3. Rural, small towns, outlying and adjacent areas"] <- 1
+poldata$Rural[poldata$Urban=="1. Central cities"|poldata$Urban=="2. Suburban areas"] <- 0
+
+
+# Create an indicator variable for whether a respondent self-identifies as a political Independent
+partisan <- poldata[poldata$Party_ID_7!="",]
+partisan$independent[partisan$Party_ID_7 != "4. Independent - Independent"] <- 0
+partisan$independent[partisan$Party_ID_7 == "4. Independent - Independent"] <- 1
+
+# Create an indicator variable for whether a respondent self-identifies as either a "Strong Democrat" or a "Strong Republican"
+partisan$strongpartisan[partisan$Party_ID_7 == "1. Strong Democrat" | partisan$Party_ID_7 == "7. Strong Republican"] <- 1
+partisan$strongpartisan[partisan$Party_ID_7 != "1. Strong Democrat" & partisan$Party_ID_7 != "7. Strong Republican"] <- 0
+
+partisan$attendance[partisan$attend_meetings=="1. No"] <- 0
+partisan$attendance[partisan$attend_meetings=="2. Yes"] <- 1
+
+
+meetings <- group_by(subset(partisan, Year>=1970), Year) %>% 
+  mutate(prop.partisan_attend = mean(attend_meetings == '2. Yes' & strongpartisan==1),
+         prop.independent_attend = mean(attend_meetings == '2. Yes' & independent==1))
+
+attendance_change <- ggplot() + 
+  geom_line(data = meetings, aes(x = Year, y = prop.partisan_attend, text = "<b>Proportion of Strong Partisans that Attended Campaign Event</b>"),
+            color = "Purple") +
+  geom_line(data = meetings, aes(x = Year, y = prop.independent_attend, text = "<b>Proportion of Indpendents that Attended Campaign Event</b>"),
+            color = "Yellow") +
+  xlab('Year') +
+  ylab('Proportion of Electorate') +
+  ggtitle("Change in Campaign Event Attendance, by Partisanship Strength (1970-2016)") +
+  theme(plot.title = element_text(size = 12)) +
+  theme(legend.title = element_blank()) +
+  theme(axis.title=element_text(size=8))
+
+attendance_change <- ggplotly(attendance_change)
+attendance_change
+
+rm(attendance_change)
+
+```
+
+
+### Partisanship & Event Attendance (Regression)
+```{r}
+
+#Run model
+csm2.fit <- glm(attendance ~ strongpartisan + independent + Age + Year, data = partisan) #Specify model
+
+cases_model_df <- tidy(csm2.fit, conf.int = TRUE) %>% 
+  filter(!str_detect(term, 'factor|Intercept'))
+
+# rename terms using lists above
+# get only significant (at 0.05 level) IVs
+cond_cases_model <- cases_model_df %>% 
+  filter(p.value < 0.05 & !str_detect(term, 'tests'))
+# reorder vars for plot
+cases_new_order <- order(cond_cases_model$estimate, decreasing = FALSE)
+cond_cases_model$term <- as.character(cond_cases_model$term)
+cond_cases_model$term <- factor(cond_cases_model$term, levels = cond_cases_model$term[cases_new_order])
+# plot coefficient plot
+
+plot_cases <- ggplot(cond_cases_model, aes(x=term, y = estimate)) + 
+  geom_hline(yintercept=0, colour="#8C2318") +  # Line at 0
+  geom_pointrange(aes(ymin=conf.low, ymax=conf.high)) +  # Ranges for each coefficient
+  labs(x="", y="Coefficient Estimate", title="Coefficient Estimates of Strength of \nPartisanship on Campaign Event Attendance") +
+  theme(plot.title = element_text(size = 6)) +
+  theme(legend.title = element_blank()) +
+  theme(axis.title=element_text(size=8)) +
+  coord_flip() +
+  theme_minimal()
+
+ggplotly(plot_cases)
+
+rm(cases_model_df)
+rm(plot_cases)
+rm(partisan)
+rm(poldata)
+```
+
+
+Row {.tabset .tabset-fade data-height=600}
+--------------------------------------------
+
+### Ideology and Political Engagement - Erin Bostic
+
+My research helps to explain the relationship between political ideology and political participation. My research adds to the understanding about which ideology, Liberals or Conservatives, is more likely to participate politically. I was motivated by the divide between the two ideologies in the last election (2016) and also the increase rate of political participation in the recent years. Also by Putnam’s findings that although more people are becoming politically engaged, less people are voting. The evidence found is important because it gives an idea on which ideology participates more given a controversial issue. This knowledge could help us to predict the participation levels by ideology in the future.
+
+My analysis of trends in political activity between liberals and conservatives over the last 50 years shows that overall, liberals were more likely to politically active than conservatives.  
+
+I am also interested in the relationship between policy preferences and political participation. My next graph shows the attitudes about abortion by ideology in 1980 and 2016. The liberals are represented in blue while conservatives. are in red. In both 1980 and 2016 liberals expressed high opinions about abortion being unrestricted while a lot of less conservatives expressed opposite ideas. This graph shows that liberals in both 1980 and 2016 were more politically engaged on the idea of abortion than conservatives. 
+
+
+### Ideology and Political Engagement (Time Trend)
+
+```{r}
+
+# Political Activity
+bostic <- anes
+bostic$Political_Activity[bostic$campaign_activity_count=="1. Lowest level of participation (none)"] <- 1
+bostic$Political_Activity[bostic$campaign_activity_count=="2"] <- 2
+bostic$Political_Activity[bostic$campaign_activity_count=="3"] <- 3
+bostic$Political_Activity[bostic$campaign_activity_count=="4"] <- 4
+bostic$Political_Activity[bostic$campaign_activity_count=="5"] <- 5
+bostic$Political_Activity[bostic$campaign_activity_count=="6. Highest level of participation in campaign activities"] <- 6
+
+# Father's Political Interest
+bostic$Political_Interest_Father[bostic$Political_Interest_Father=="1. Didn't pay much attention"] <- 1
+bostic$Political_Interest_Father[bostic$Political_Interest_Father=="2. Somewhat interested"] <- 2
+bostic$Political_Interest_Father[bostic$Political_Interest_Father=="3. Very much interested"] <- 3
+bostic$Political_Interest_Father <- as.numeric(bostic$Political_Interest_Father)
+
+# Mother's Political Interest
+bostic$Political_Interest_Mother[bostic$Political_Interest_Mother=="1. Didn't pay much attention"] <- 1
+bostic$Political_Interest_Mother[bostic$Political_Interest_Mother=="2. Somewhat interested"] <- 2
+bostic$Political_Interest_Mother[bostic$Political_Interest_Mother=="3. Very much interested"] <- 3
+bostic$Political_Interest_Mother <- as.numeric(bostic$Political_Interest_Mother)
+
+# Father's Partisan ID
+bostic$party_father3[bostic$Party_ID_Father=="1. Democrat"] <- 1
+bostic$party_father3[bostic$Party_ID_Father=="2. Independent (some years also: shifted around)"] <- 2
+bostic$party_father3[bostic$Party_ID_Father=="3. Republican"] <- 3
+
+
+
+# Father's Democrat and Republican indicator variables
+bostic$father_democrat[bostic$Party_ID_Father!="1. Democrat"] <- 0
+bostic$father_democrat[bostic$Party_ID_Father=="1. Democrat"] <- 1
+
+bostic$father_republican[bostic$Party_ID_Father!="3. Republican"] <- 0
+bostic$father_republican[bostic$Party_ID_Father=="3. Republican"] <- 1
+
+
+# Mother's Partisan ID
+bostic$party_mother3[bostic$Party_ID_Mother=="1. Democrat"] <- 1
+bostic$party_mother3[bostic$Party_ID_Mother=="2. Independent (some years also: shifted around)"] <- 2
+bostic$party_mother3[bostic$Party_ID_Mother=="3. Republican"] <- 3
+
+# Mother's Democrat and Republican indicator variables
+bostic$mother_democrat[bostic$Party_ID_Mother!="1. Democrat"] <- 0
+bostic$mother_democrat[bostic$Party_ID_Mother=="1. Democrat"] <- 1
+
+bostic$mother_republican[bostic$Party_ID_Mother!="3. Republican"] <- 0
+bostic$mother_republican[bostic$Party_ID_Mother=="3. Republican"] <- 1
+
+
+#Respondent's Partisan ID
+bostic$party_3[bostic$Party_ID_3=="1. Democrats (including leaners)"] <- 1
+bostic$party_3[bostic$Party_ID_3=="2. Independents"] <- 2
+bostic$party_3[bostic$Party_ID_3=="3. Republicans (including leaners)"] <- 2
+
+# Respondent Democrat and Republican indicator variables
+bostic$Republican[bostic$Party_ID_7=="3. Independent - Democrat" |bostic$Party_ID_7=="2. Weak Democrat"|bostic$Party_ID_7=="1. Strong Democrat"] <- 0
+bostic$Republican[bostic$Party_ID_7=="5. Independent - Republican" |bostic$Party_ID_7=="6. Weak Republican"|bostic$Party_ID_7=="7. Strong Republican"] <- 1
+
+
+bostic$Democrat[bostic$Party_ID_7=="3. Independent - Democrat"   |bostic$Party_ID_7=="2. Weak Democrat"  |bostic$Party_ID_7=="1. Strong Democrat"] <- 1
+bostic$Democrat[bostic$Party_ID_7=="5. Independent - Republican" |bostic$Party_ID_7=="6. Weak Republican"|bostic$Party_ID_7=="7. Strong Republican"] <- 0
+
+
+# Ideology
+bostic$strong_lib[bostic$Ideology_ID_7=="1. Extremely liberal"] <- 3
+bostic$strong_lib[bostic$Ideology_ID_7=="2. Liberal"] <- 2
+bostic$strong_lib[bostic$Ideology_ID_7=="3. Slightly liberal"] <- 1
+
+bostic$strong_con[bostic$Ideology_ID_7=="7. Extremely conservative"] <- 3
+bostic$strong_con[bostic$Ideology_ID_7=="6. Conservative"] <- 2
+bostic$strong_con[bostic$Ideology_ID_7=="5. Slightly conservative"] <- 1
+
+bostic$ideology2[bostic$Ideology_ID_7=="1. Extremely liberal"|bostic$Ideology_ID_7=="2. Liberal"|bostic$Ideology_ID_7=="3. Slightly liberal"] <- "Liberal"
+bostic$ideology2[bostic$Ideology_ID_7=="7. Extremely conservative"|bostic$Ideology_ID_7=="6. Conservative"|bostic$Ideology_ID_7=="5. Slightly conservative"] <- "Conservative"
+
+# Democrat/Republican - 2 Category
+bostic$party2[bostic$Democrat==1] <- "Democrat"
+bostic$party2[bostic$Republican==1] <- "Republican"
+
+# Correspondence b/w Father's and Child's Partisan ID
+bostic$gensort <- abs(bostic$party_3-bostic$party_father3)
+
+# Age
+bostic$Age[bostic$Age=="97. 97 years old (1952, 1974, 1996 and later: or older); 2012,2016: 90"] <- 97
+bostic$Age[bostic$Age=="98. 98 years old (1958-1962, 1966, 1968: or older)"] <- 98
+bostic$Age[bostic$Age=="99. 99 years old (1976-1990,1994,2002: or older)"] <- 99
+bostic$Age <- as.numeric(bostic$Age)  
+
+# Male
+bostic$Male[bostic$Gender=="2. Female" | bostic$Gender=="3. Other (2016)"] <- 0
+bostic$Male[bostic$Gender=="1. Male"] <- 1
+
+# Race
+bostic$Race_4[bostic$Race_4==""] <- NA
+bostic$Black[bostic$Race_4!="2. Black non-Hispanic"] <- 0
+bostic$Black[bostic$Race_4=="2. Black non-Hispanic"] <- 1
+bostic$White[bostic$Race_4!="1. White non-Hispanic"] <- 0
+bostic$White[bostic$Race_4=="1. White non-Hispanic"] <- 1
+
+bostic$Latino[bostic$Race_4!="3. Hispanic"] <- 0
+bostic$Latino[bostic$Race_4=="3. Hispanic"] <- 1
+
+#Grade School
+bostic$gradeschool[bostic$Education_4!="1. Grade school or less (0-8 grades)"] <- 0
+bostic$gradeschool[bostic$Education_4=="1. Grade school or less (0-8 grades)"] <- 1
+
+#High School
+bostic$highschool[bostic$Education_4!="2. High school (12 grades or fewer, incl. non-college"] <- 0
+bostic$highschool[bostic$Education_4=="2. High school (12 grades or fewer, incl. non-college"] <- 1
+
+#Some College
+bostic$somecollege[bostic$Education_4!="3. Some college (13 grades or more but no degree;"] <- 0
+bostic$somecollege[bostic$Education_4=="3. Some college (13 grades or more but no degree;"] <- 1
+
+#College
+bostic$college[bostic$Education_4!="4. College or advanced degree (no cases 1948)"] <- 0
+bostic$college[bostic$Education_4=="4. College or advanced degree (no cases 1948)"] <- 1
+
+#Income
+bostic$income_bottomthird[bostic$Family_Income=="1. 0 to 16 percentile" | bostic$Family_Income=="2. 17 to 33 percentile"] <- 1
+bostic$income_bottomthird[bostic$Family_Income!="1. 0 to 16 percentile" & bostic$Family_Income!="2. 17 to 33 percentile"] <- 0
+
+# Voted
+bostic$Voted[bostic$Voted=="1. No, did not vote"] <- 0
+bostic$Voted[bostic$Voted=="2. Yes, voted"]      <- 1
+bostic$Voted <- as.numeric(bostic$Voted)
+
+bostic$pcolor[bostic$ideology2=="Conservative"] <- "blue"
+bostic$pcolor[bostic$ideology2=="Liberal"] <- "red"
+
+
+# Trend in average engagement, by ideology
+ideology_trend <- subset(bostic, !is.na(ideology2) & !is.na(Political_Activity)) %>%
+                  group_by(Year) %>%
+                  mutate(liberal.engagement = mean(Political_Activity[ideology2=="Liberal"]),
+                         conservative.engagement = mean(Political_Activity[ideology2=="Conservative"]))
+
+
+ggplotly(ggplot() + 
+           geom_line(data = ideology_trend, aes(x = Year, y = liberal.engagement, text = "<b>Average Political Activity</b>"), color="blue") +
+           geom_line(data = ideology_trend, aes(x = Year, y = conservative.engagement, text = "<b>Average Political Activity</b>"), color="red") +
+           xlab('Year') +
+           ylab('Political Activity Scale (0-6)') +
+           ggtitle("Political Activity by Ideology (bostic 1950-2016)") +
+           theme(plot.title = element_text(size = 12)) +
+           theme(legend.title = element_blank()) +
+           theme(axis.title=element_text(size=8)))
+
+
+```
+
+### Ideology and Attitudes on Abortion
+
+```{r}
+  
+    # Attitudes on Abortion, by ideology
+    bostic$abortion[bostic$Abortion_Legal=="1. By law, abortion should never be permitted"] <- 4
+    bostic$abortion[bostic$Abortion_Legal=="2. The law should permit abortion only in case of rape,"] <- 3
+    bostic$abortion[bostic$Abortion_Legal=="3. The law should permit abortion for reasons other than"] <- 2
+    bostic$abortion[bostic$Abortion_Legal=="4. By law, a woman should always be able to obtain an"] <- 1
+
+    #Graphs
+    p6 <- ggplotly(ggplot(data=subset(bostic, Year==1980 & !is.na(ideology2) & !is.na(abortion)), aes(x=abortion, group=ideology2,fill = pcolor)) +
+               theme(legend.position="none") +
+               geom_density(adjust=1.5, alpha=.4) +
+               ggtitle("Abortion Attitudes by ideology | Left = 1980, Right = 2016") +
+               scale_x_continuous(breaks = c(1,2,3,4), labels = c('Unrestricted','Clear Need','Health risk','Never')) +
+               theme_ipsum())
+    
+   p7 <- ggplotly(ggplot(data=subset(bostic, Year==2016 & !is.na(ideology2) & !is.na(abortion)), aes(x=abortion, group=ideology2,fill = pcolor)) +
+               theme(legend.position="none") +
+               geom_density(adjust=1.5, alpha=.4) +
+               ggtitle("Abortion Attitudes by Gender, 2016") +
+                 scale_x_continuous(breaks = c(1,2,3,4), labels = c('Unrestricted','Clear Need','Health risk','Never')) +
+                 theme_ipsum())
+    
+   subplot(p6, style(p7, showlegend = FALSE),  titleY = TRUE, which_layout = 1)
+
+   rm(bostic)
+   rm(ideology_trend)
+   rm(p6)
+   rm(p7)
+   
+```
+
+
+
+Row {.tabset .tabset-fade data-height=600}
+--------------------------------------------
+
+### Media Exposure and Engagement - Aleenih Carter-Key
+
+My research investigated the idea of how does mass media impact civic engagement. This research added to my understanding of politics because it helped me really see how much screen time and other media rallies up the masses to get them to participate politically. I was motivated to ask this question because I use mass media very often and I always am exposed to political content; so, I thought that this was a great topic to explore. This knowledge is important because it shows that people who are more often exposed to certain types of media are more likely than those who are not exposed to certain types of media to be civically engaged.
+
+My first coefficient plot presents the results of a logit regression of the likelihood of voting. This model shows that people that listen to the radio or read newspapers frequently are more likely to vote than people who watch TV frequently, even when controlling for other sources of media
+
+My next plot presents the results of a logit regression of the likelihood of attending a campaign event or rally. My results show that people who frequently read the newspaper and listen to the radio for political information are significantly more likely to go to meetings than those who watch tv.
+
+
+### Media Exposure and Voting (Regression)
+
+```{r}
+
+aleenih <- anes
+# Voting
+aleenih$Voted[aleenih$Voted=="1. No, did not vote"] <- 0
+aleenih$Voted[aleenih$Voted=="2. Yes, voted"] <- 1   
+aleenih$Voted <- as.numeric(aleenih$Voted)
+
+# TV
+
+aleenih$TV_frequency[aleenih$TV_frequency=="0. None"] <- 0
+aleenih$TV_frequency[aleenih$TV_frequency=="1. One day"] <- 1
+aleenih$TV_frequency[aleenih$TV_frequency=="7. Every day"] <- 7
+aleenih$TV_frequency <- as.numeric(aleenih$TV_frequency)
+
+# Radio
+
+aleenih$Radio_frequency[aleenih$Radio_frequency=="None ('No')"] <- 0
+aleenih$Radio_frequency[aleenih$Radio_frequency=="3. Several"] <- 2
+aleenih$Radio_frequency[aleenih$Radio_frequency=="1. Good many"] <- 3
+aleenih$Radio_frequency[aleenih$Radio_frequency=="5. One or two"] <- 1
+aleenih$Radio_frequency <- as.numeric(aleenih$Radio_frequency)
+
+# Newspaper
+
+aleenih$Newspaper_frequency[aleenih$Newspaper_frequency=="0. None"] <- 0
+aleenih$Newspaper_frequency[aleenih$Newspaper_frequency=="1. One day "] <- 1
+aleenih$Newspaper_frequency[aleenih$Newspaper_frequency=="7. Every day"] <- 7
+aleenih$Newspaper_frequency <- as.numeric(aleenih$Newspaper_frequency)
+
+#Verify class of variables
+
+# Attend political ralleys or meetings
+aleenih$attendance[aleenih$attend_meetings=="1. No"] <- 0
+aleenih$attendance[aleenih$attend_meetings=="2. Yes"] <- 1
+
+# Age
+aleenih$Age[aleenih$Age=="97. 97 years old (1952, 1974, 1996 and later: or older); 2012,2016: 90"] <- 97
+aleenih$Age[aleenih$Age=="98. 98 years old (1958-1962, 1966, 1968: or older)"] <- 98
+aleenih$Age[aleenih$Age=="99. 99 years old (1976-1990,1994,2002: or older)"] <- 99
+aleenih$Age <- as.numeric(aleenih$Age)  
+
+#Run Voting model
+tv_vote <- glm(Voted ~ TV_frequency + Radio_frequency + Newspaper_frequency + Year + Age, data = aleenih) #Specify model
+
+tv_model <- tidy(tv_vote, conf.int = TRUE) %>% 
+  filter(!str_detect(term, 'factor|Intercept'))
+
+# rename terms using lists above
+# get only significant (at 0.05 level) IVs
+
+# reorder vars for plot
+new_order <- order(tv_model$estimate, decreasing = FALSE)
+tv_model$term <- as.character(tv_model$term)
+tv_model$term <- factor(tv_model$term, levels = tv_model$term[new_order])
+# plot coefficient plot
+
+tv_plot <- ggplot(tv_model, aes(x=term, y = estimate)) + 
+  geom_hline(yintercept=0, colour="#8C2318") +  # Line at 0
+  geom_pointrange(aes(ymin=conf.low, ymax=conf.high)) +  # Ranges for each coefficient
+  labs(x="", y="Coefficient Estimate", title="Coefficient Estimates of Regression Model of \nMedia Usage on Likelihood of Voting") +
+  theme(plot.title = element_text(size = 6)) +
+  theme(legend.title = element_blank()) +
+  theme(axis.title=element_text(size=8)) +
+  coord_flip() +
+  theme_minimal()
+
+ggplotly(tv_plot)
+
+rm(tv_plot)
+
+```
+
+
+### Media Exposure and Campaign Event Attendance (Regression)
+
+```{r}
+#Run Meeting model
+attend_model <- glm(attendance ~ TV_frequency + Radio_frequency + Newspaper_frequency + Year + Age, data = aleenih) #Specify model
+
+att_model <- tidy(attend_model, conf.int = TRUE) %>% 
+  filter(!str_detect(term, 'factor|Intercept'))
+
+# rename terms using lists above
+# get only significant (at 0.05 level) IVs
+
+# reorder vars for plot
+new_order <- order(att_model$estimate, decreasing = FALSE)
+att_model$term <- as.character(att_model$term)
+att_model$term <- factor(att_model$term, levels = att_model$term[new_order])
+# plot coefficient plot
+
+att_plot <- ggplot(att_model, aes(x=term, y = estimate)) + 
+  geom_hline(yintercept=0, colour="#8C2318") +  # Line at 0
+  geom_pointrange(aes(ymin=conf.low, ymax=conf.high)) +  # Ranges for each coefficient
+  labs(x="", y="Coefficient Estimate", title="Coefficient Estimates of Regression Model of Media \nUsage on Likelihood of Attending Campaign Event") +
+  theme(plot.title = element_text(size = 6)) +
+  theme(legend.title = element_blank()) +
+  theme(axis.title=element_text(size=8)) +
+  coord_flip() +
+  theme_minimal()
+
+ggplotly(att_plot)
+
+rm(aleenih)
+rm(att_model)
+rm(att_plot)
+```
+
+
+
+Row {.tabset .tabset-fade data-height=600}
+--------------------------------------------------------
+
+### Media Consumption and Engagement - Hannah Davis
+
+My research shows that consuming election related content on certain types of media, specifically newspaper and radio, increases the likelihood that someone votes. Understanding what motivates the public to vote helps political scientists understand trends in society. It also helps campaigns focus their efforts where they will make the biggest impact. For example, according to my research, people who watch election related content on TV are not as likely as people who do the same on the radio or newspaper to vote, so campaigns should put more energy into newspaper and radio campaign content because those voters are the most likely to actually vote for them. 
+
+
+
+### Decline in Media Consumption (Time Trend)
+```{r}
+davis <- anes
+# Transform data
+
+davis$Age[davis$Age=="97. 97 years old (1952, 1974, 1996 and later: or older); 2012,2016: 90"] <- 97
+davis$Age[davis$Age=="98. 98 years old (1958-1962, 1966, 1968: or older)"] <- 98
+davis$Age[davis$Age=="99. 99 years old (1976-1990,1994,2002: or older)"] <- 99
+davis$Age <- as.numeric(davis$Age)
+
+
+# Voting
+
+davis$Voted[davis$Voted=="1. No, did not vote"] <- 0
+davis$Voted[davis$Voted=="2. Yes, voted"] <- 1   
+davis$Voted <- as.numeric(davis$Voted)
+
+# TV
+davis$TV_frequency[davis$TV_frequency=="0. None"] <- 0
+davis$TV_frequency[davis$TV_frequency=="1. One day"] <- 1
+davis$TV_frequency[davis$TV_frequency=="7. Every day"] <- 7
+davis$TV_frequency <- as.numeric(davis$TV_frequency)
+
+# Radio
+
+davis$Radio_frequency[davis$Radio_frequency=="None ('No')"] <- 0
+davis$Radio_frequency[davis$Radio_frequency=="3. Several"] <- 2
+davis$Radio_frequency[davis$Radio_frequency=="1. Good many"] <- 3
+davis$Radio_frequency[davis$Radio_frequency=="5. One or two"] <- 1
+davis$Radio_frequency <- as.numeric(davis$Radio_frequency)
+
+# Newspaper
+davis$Newspaper_frequency[davis$Newspaper_frequency=="0. None"] <- 0
+davis$Newspaper_frequency[davis$Newspaper_frequency=="1. One day "] <- 1
+davis$Newspaper_frequency[davis$Newspaper_frequency=="7. Every day"] <- 7
+davis$Newspaper_frequency <- as.numeric(davis$Newspaper_frequency)
+
+# Media Frequency Graph
+
+media <- subset(davis,!is.na(TV_frequency) & !is.na(Radio_frequency) & !is.na(Newspaper_frequency)) %>%
+  group_by(Year) %>% 
+  mutate(avg.tv = mean(TV_frequency),
+         avg.radio = mean(Radio_frequency),
+         avg.newspaper = mean(Newspaper_frequency))
+
+# Time Trend graph of church attendance
+tv_paper_change <-  ggplotly(ggplot() + 
+                                 geom_line(data = media, aes(x = Year, y = avg.tv, text = "<b>Average TV Viewing</b>"), color = "blue") +
+                                 geom_line(data = media, aes(x = Year, y = avg.radio, text = "<b>Average Radio Listening</b>"), color = "green") +
+                                 geom_line(data = media, aes(x = Year, y = avg.newspaper, text = "<b>Average Newspaper Reading</b>"), color = "orange") +
+                                 xlab('Year') +
+                                 ylab('Frequency') +
+                                 ggtitle("Decline in Frequency of Media Usage over Time (davis 1970-2016)") +
+                                 theme(plot.title = element_text(size = 12)) +
+                                 theme(legend.title = element_blank()) +
+                                 theme(axis.title=element_text(size=8)))
+
+tv_paper_change <- ggplotly(tv_paper_change)
+
+tv_paper_change
+rm(media)
+rm(tv_paper_change)
+```
+
+
+### Media Consumption and Voting (Regression)
+```{r}
+davis1 <- glm(Voted ~ TV_frequency + Radio_frequency + Newspaper_frequency + Year + Age, data = davis) #Specify model
+
+davis1_model <- tidy(davis1, conf.int = TRUE) %>% 
+  filter(!str_detect(term, 'factor|Intercept'))
+
+new_order <- order(davis1_model$estimate, decreasing = FALSE)
+davis1_model$term <- as.character(davis1_model$term)
+davis1_model$term[davis1_model$term=="Black1"] <- "Black"
+davis1_model$term[davis1_model$term=="trustgov"] <- "Trust in Government"
+davis1_model$term[davis1_model$term=="ideology7"] <- "Political Ideology"
+
+
+davis1_model$term <- factor(davis1_model$term, levels = davis1_model$term[new_order])
+# plot coefficient plot
+davis1_plot <- ggplot(davis1_model, aes(x=term, y = estimate)) + 
+  geom_hline(yintercept=0, colour="#8C2318") +  # Line at 0
+  geom_pointrange(aes(ymin=conf.low, ymax=conf.high)) +  # Ranges for each coefficient
+  labs(x="", y="Coefficient Estimate", title="Frequency of Media Consumption and \nLikelihood of Voting") +
+  theme(plot.title = element_text(size = 6)) +
+  theme(legend.title = element_blank()) +
+  theme(axis.title=element_text(size=8)) +
+  coord_flip() +
+  theme_minimal()
+
+ggplotly(davis1_plot)
+
+rm(davis)
+rm(davis1_model)
+rm(davis1_plot)
+
+```
+
+
+Political Socialization {data-orientation=columns}
+======================================================================================
+
+<style>
+.dashboard {
+  position: fixed;
+  left: 0;
+  top: 50px;
+  bottom: 0;
+  right: 0;
+}
+.dashboard iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+</style>
+
+<div class="dashboard"> 
+<iframe src="https://davidrigbysociology.s3.amazonaws.com/political-socialization.html/">
+</iframe>
+</div>
+
+
+```{r}
+#FINAL CODE CHUNK
+rm(anes)
+```
+
+
