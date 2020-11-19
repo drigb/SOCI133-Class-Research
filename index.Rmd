@@ -688,6 +688,29 @@ Political Socialization {data-orientation=columns}
 </div>
 
 
+Political Sorting {data-orientation=columns}
+======================================================================================
+
+<style>
+.dashboard {
+  position: fixed;
+  left: 0;
+  top: 50px;
+  bottom: 0;
+  right: 0;
+}
+.dashboard iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+</style>
+
+<div class="dashboard"> 
+<iframe src="https://davidrigbysociology.s3.amazonaws.com/political-sorting.html">
+</iframe>
+</div>
+
 ```{r}
 #FINAL CODE CHUNK
 rm(anes)
