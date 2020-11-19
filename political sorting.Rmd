@@ -1,0 +1,619 @@
+---
+title: "Political Sorting"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: scroll
+    theme: united
+---
+
+<style>
+
+body {
+  padding-top:0px
+}
+
+.navbar{
+  visibility: hidden
+}
+
+.colored {
+  background-color: #e4e2d8;
+}
+
+</style>
+
+
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(crosstalk)
+library(hrbrthemes)
+library(gmodels)
+library(flexdashboard)
+library(plotly)
+library(leaflet)
+library(numform)
+library(USAboundaries)
+library(gridExtra)
+library(ggmap)
+library(DT)
+library(knitr)
+library(tigris)
+library(devtools)
+library(rappdirs)
+library(leaflet)
+library(htmlwidgets)
+library(sp)
+library(dplyr)
+library(rgeos)
+library(rgdal)
+library(maptools)
+library(sf)
+library(spdep)
+library(mapview)
+library(USAboundariesData)
+library(broom)
+library(hrbrthemes)
+
+
+```
+
+
+
+```{r, include=FALSE}
+filename <- 'https://davidrigbysociology.s3.amazonaws.com/anes_1946-2016.csv' # Paste the file location for the data set between this set of quotation marks and run this code
+
+#   d) Read the data file into R and assign it in an object named anes
+anes <- read.csv(filename, stringsAsFactors = FALSE)
+
+```
+
+
+Political Sorting {data-orientation=rows}
+===================================================================
+
+Row {.tabset .tabset-fade data-height=600}
+--------------------------------------------------------
+
+### Gender and Political Ideology - Peyton Cox
+
+My research argues that gender and political ideology have a relationship because of gender ideology, specifically ideas of gender roles. These findings are important because they will show why women are more likely to be moderate in their views and why men are more likely to be extreme. This is important because it can display why there is such a gender divide in politics today.
+
+My first figure is a graph showing the change in the republican vote share over time by gender between the years 1950 and 2016. The purple line represents the proportion of males that voted republican, and the green line represents the proportion of females that voted republican.
+
+My next figure is  a density plot of the female population that identifies as either an extreme liberal, a liberal, a weak liberal, moderate, a weak conservative, a conservative, or an extreme conservative. The graph on the left shows the year 1980, and the graph on the right shows the year 2016.
+
+
+### Republican Vote Share by Gender (Time Trend)
+
+```{r}
+
+cox <- anes
+#   e) Get a list of the names of all of the variables in your data set
+
+# Gender
+cox$Female[cox$Gender=="2. Female"] <- 1
+cox$Female[cox$Gender=="1. Male"] <- 0
+
+# Voted
+cox$Voted[cox$Voted=="1. No, did not vote"] <- 0
+cox$Voted[cox$Voted=="2. Yes, voted"]      <- 1
+cox$Voted <- as.numeric(cox$Voted)
+
+# Voted for Republican for President
+cox$vote_for_republican[cox$Pres_Party_Voted=="1. Democrat"] <- 0
+cox$vote_for_republican[cox$Pres_Party_Voted=="2. Republican"] <- 1
+
+#Party ID
+cox$Republican[cox$Party_ID_7=="3. Independent - Democrat" |cox$Party_ID_7=="2. Weak Democrat"|cox$Party_ID_7=="1. Strong Democrat"] <- 0
+cox$Republican[cox$Party_ID_7=="5. Independent - Republican" |cox$Party_ID_7=="6. Weak Republican"|cox$Party_ID_7=="7. Strong Republican"] <- 1
+
+
+cox$Democrat[cox$Party_ID_7=="3. Independent - Democrat" |cox$Party_ID_7=="2. Weak Democrat"|cox$Party_ID_7=="1. Strong Democrat"] <- 1
+cox$Democrat[cox$Party_ID_7=="5. Independent - Republican" |cox$Party_ID_7=="6. Weak Republican"|cox$Party_ID_7=="7. Strong Republican"] <- 0
+
+
+# Political Ideology of Respondent
+cox$ideology7[cox$Ideology_ID_7=="1. Extremely liberal"]      <- 1
+cox$ideology7[cox$Ideology_ID_7=="2. Liberal"]                <- 2
+cox$ideology7[cox$Ideology_ID_7=="3. Slightly liberal"]       <- 3
+cox$ideology7[cox$Ideology_ID_7=="4. Moderate, middle of the road"] <- 4
+cox$ideology7[cox$Ideology_ID_7=="5. Slightly conservative"]  <- 5
+cox$ideology7[cox$Ideology_ID_7=="6. Conservative"]           <- 6
+cox$ideology7[cox$Ideology_ID_7=="7. Extremely conservative"] <- 7
+
+
+# Age
+cox$Age[cox$Age=="97. 97 years old (1952, 1974, 1996 and later: or older); 2012,2016: 90"] <- 97
+cox$Age[cox$Age=="98. 98 years old (1958-1962, 1966, 1968: or older)"] <- 98
+cox$Age[cox$Age=="99. 99 years old (1976-1990,1994,2002: or older)"] <- 99
+cox$Age <- as.numeric(cox$Age)
+
+# Political Activity
+cox$Political_Activity[cox$campaign_activity_count=="1. Lowest level of participation (none)"] <- 1
+cox$Political_Activity[cox$campaign_activity_count=="2"] <- 2
+cox$Political_Activity[cox$campaign_activity_count=="3"] <- 3
+cox$Political_Activity[cox$campaign_activity_count=="4"] <- 4
+cox$Political_Activity[cox$campaign_activity_count=="5"] <- 5
+cox$Political_Activity[cox$campaign_activity_count=="6. Highest level of participation in campaign activities"] <- 6
+
+# Race
+cox$Race_4[cox$Race_4==""] <- NA
+cox$Black[cox$Race_4!="2. Black non-Hispanic"] <- 0
+cox$Black[cox$Race_4=="2. Black non-Hispanic"] <- 1
+cox$White[cox$Race_4!="1. White non-Hispanic"] <- 0
+cox$White[cox$Race_4=="1. White non-Hispanic"] <- 1
+
+
+cox$Latino[cox$Race_4!="3. Hispanic"] <- 0
+cox$Latino[cox$Race_4=="3. Hispanic"] <- 1
+
+
+# Highest level of education
+cox$education[cox$Education_4=="1. Grade school or less (0-8 grades)"] <- 0
+cox$education[cox$Education_4=="2. High school (12 grades or fewer, incl. non-college"] <- 1
+cox$education[cox$Education_4=="3. Some college (13 grades or more but no degree;"] <- 2
+cox$education[cox$Education_4=="4. College or advanced degree (no cases 1948)"] <- 3
+
+
+#Grade School
+cox$gradeschool[cox$Education_4!="1. Grade school or less (0-8 grades)"] <- 0
+cox$gradeschool[cox$Education_4=="1. Grade school or less (0-8 grades)"] <- 1
+
+#High School
+cox$highschool[cox$Education_4!="2. High school (12 grades or fewer, incl. non-college"] <- 0
+cox$highschool[cox$Education_4=="2. High school (12 grades or fewer, incl. non-college"] <- 1
+
+#Some College
+cox$somecollege[cox$Education_4!="3. Some college (13 grades or more but no degree;"] <- 0
+cox$somecollege[cox$Education_4=="3. Some college (13 grades or more but no degree;"] <- 1
+
+#College
+cox$college[cox$Education_4!="4. College or advanced degree (no cases 1948)"] <- 0
+cox$college[cox$Education_4=="4. College or advanced degree (no cases 1948)"] <- 1
+
+#Income
+cox$income_bottomthird[cox$Family_Income=="1. 0 to 16 percentile" | cox$Family_Income=="2. 17 to 33 percentile"] <- 1
+cox$income_bottomthird[cox$Family_Income!="1. 0 to 16 percentile" & cox$Family_Income!="2. 17 to 33 percentile"] <- 0
+
+
+
+#Graph of Republican vote share, by gender
+repvote <- subset(cox, !is.na(Female) & !is.na(vote_for_republican)) %>%
+  group_by(Year) %>%
+  mutate(prop.rep_female = mean(vote_for_republican[Female==1]),
+         prop.rep_male = mean(vote_for_republican[Female==0]))
+
+
+ggplotly(ggplot() + 
+           geom_line(data = repvote, aes(x = Year, y = prop.rep_female, text = "<b>Proportion Voted Republican</b>"), color = 'Green') +
+           geom_line(data = repvote, aes(x = Year, y = prop.rep_male, text = "<b>Proportion Voted Republican</b>"), color = 'Purple') +
+           xlab('Year') +
+           ylab('Proportion Pop.') +
+           ggtitle("Republican Vote Share, by Gender (cox 1950-2016)") +
+           theme(plot.title = element_text(size = 12)) +
+           theme(legend.title = element_blank()) +
+           theme(axis.title=element_text(size=8)))
+
+```
+
+
+### Predictors of Political Ideology (Regression)
+
+```{r}
+
+#   Linear regression of Gender and Political Ideology
+# Controlling for Party identification, age, gender, race, education level, income, and survey year
+# b) Construct model    
+model1 <- ideology7 ~ # Outcome of interest
+  Female +
+  Age +
+  Black +
+  Latino +
+  highschool +
+  somecollege +
+  college +
+  income_bottomthird +
+  Year
+
+# c) Run The Model
+#    Paste a picture of the Model output into the Word document you submit to Sakai.     
+
+Cox1 <- lm(data = cox, formula = model1)
+Cox1_model <- tidy(Cox1, conf.int = TRUE) %>% 
+  filter(!str_detect(term, 'factor|Intercept'))
+new_order <- order(Cox1_model$estimate, decreasing = FALSE)
+Cox1_model$term <- as.character(Cox1_model$term)
+Cox1_model$term <- factor(Cox1_model$term, levels = Cox1_model$term[new_order])
+# plot coefficient plot
+Cox1_plot <- ggplot(Cox1_model, aes(x=term, y = estimate)) + 
+  geom_hline(yintercept=0, colour="#8C2318") +  # Line at 0
+  geom_pointrange(aes(ymin=conf.low, ymax=conf.high)) +  # Ranges for each coefficient
+  labs(x="", y="Coefficient Estimate", title="Predictors of Political Ideology \n(negative=liberal, positive=conservative)") +
+  theme(plot.title = element_text(size = 6)) +
+  theme(legend.title = element_blank()) +
+  theme(axis.title=element_text(size=8)) +
+  coord_flip() +
+  theme_minimal()
+
+ggplotly(Cox1_plot)
+
+rm(cox)
+rm(repvote)
+rm(Cox1)
+rm(Cox1_model)
+rm(Cox1_plot)
+
+
+```
+
+
+Row {.tabset .tabset-fade data-height=600}
+--------------------------------------------------------
+
+### Religiosity and Political Partisanship - TJ Edwards
+
+My research examined the relationship between religion, church attendance, and political ideology. This research adds to our understanding about politics because, currently, it is common to believe that churchgoers are conservative (which is often true), but my research discovered that as one attends church more often, they are actually more likely to be liberal. This is important because it challenges the current belief that devout Christians HAVE to be conservative. I was motivated to ask this question because I grew up in the church, and the majority of my, white especially, friends were conservative, but I am very liberal. 
+
+My first figure is a coefficient plot showing the results of a logit regression estimating the relationship between certain groups and being conservative. This shows that the three major religious groups present in the model are each less likely to be conservative as they attend church more often. Also displayed in this regression table is the likelihood of being conservative based on education, gender, age, race, income, and year. 
+My next figure is a graph that shows a link between attending church and civic participation. Active churchgoers (blue) were found to vote at a higher rate than those who do not attend church regularly (gray). 
+
+### Religiosity and Political Partisanship (Regression)
+
+```{r}
+edwards <- anes
+
+
+#   e) Get a list of the names of all of the variables in your data set
+
+#Respondent's Partisan ID
+
+edwards$party_3[edwards$Party_ID_3=="1. Democrats (including leaners)"] <- 1
+edwards$party_3[edwards$Party_ID_3=="2. Independents"] <- 2
+edwards$party_3[edwards$Party_ID_3=="3. Republicans (including leaners)"] <- 2
+
+
+# Respondent Democrat and Republican indicator variables
+edwards$Republican[edwards$Party_ID_7=="3. Independent - Democrat" |edwards$Party_ID_7=="2. Weak Democrat"|edwards$Party_ID_7=="1. Strong Democrat"] <- 0
+edwards$Republican[edwards$Party_ID_7=="5. Independent - Republican" |edwards$Party_ID_7=="6. Weak Republican"|edwards$Party_ID_7=="7. Strong Republican"] <- 1
+
+
+edwards$Democrat[edwards$Party_ID_7=="3. Independent - Democrat"   |edwards$Party_ID_7=="2. Weak Democrat"  |edwards$Party_ID_7=="1. Strong Democrat"] <- 1
+edwards$Democrat[edwards$Party_ID_7=="5. Independent - Republican" |edwards$Party_ID_7=="6. Weak Republican"|edwards$Party_ID_7=="7. Strong Republican"] <- 0
+
+
+# Race
+
+edwards$Race_4[edwards$Race_4==""] <- NA
+edwards$Black[edwards$Race_4!="2. Black non-Hispanic"] <- 0
+edwards$Black[edwards$Race_4=="2. Black non-Hispanic"] <- 1
+edwards$White[edwards$Race_4!="1. White non-Hispanic"] <- 0
+edwards$White[edwards$Race_4=="1. White non-Hispanic"] <- 1
+edwards$Latino[edwards$Race_4!="3. Hispanic"] <- 0
+edwards$Latino[edwards$Race_4=="3. Hispanic"] <- 1
+
+#Grade School
+edwards$gradeschool[edwards$Education_4!="1. Grade school or less (0-8 grades)"] <- 0
+edwards$gradeschool[edwards$Education_4=="1. Grade school or less (0-8 grades)"] <- 1
+
+#High School
+edwards$highschool[edwards$Education_4!="2. High school (12 grades or fewer, incl. non-college"] <- 0
+edwards$highschool[edwards$Education_4=="2. High school (12 grades or fewer, incl. non-college"] <- 1
+
+#Some College
+edwards$somecollege[edwards$Education_4!="3. Some college (13 grades or more but no degree;"] <- 0
+edwards$somecollege[edwards$Education_4=="3. Some college (13 grades or more but no degree;"] <- 1
+
+#College
+edwards$college[edwards$Education_4!="4. College or advanced degree (no cases 1948)"] <- 0
+edwards$college[edwards$Education_4=="4. College or advanced degree (no cases 1948)"] <- 1
+
+#Income
+# Bottom Third of the income distribution
+edwards$income_bottomthird[edwards$Family_Income=="1. 0 to 16 percentile" | edwards$Family_Income=="2. 17 to 33 percentile"] <- 1
+edwards$income_bottomthird[edwards$Family_Income!="1. 0 to 16 percentile" & edwards$Family_Income!="2. 17 to 33 percentile"] <- 0
+
+# Middle Third of the income distribution
+edwards$income_middlethird[edwards$Family_Income=="3. 34 to 67 percentile"] <- 1
+edwards$income_middlethird[edwards$Family_Income!="3. 34 to 67 percentile"] <- 0
+
+# Top Third of the income distribution
+edwards$income_topthird[edwards$Family_Income=="4. 68 to 95 percentile" | edwards$Family_Income=="5. 96 to 100 percentile"] <- 1
+edwards$income_topthird[edwards$Family_Income!="4. 68 to 95 percentile" & edwards$Family_Income!="5. 96 to 100 percentile"] <- 0
+
+
+# Gender
+edwards$Female[edwards$Gender=="2. Female"] <- 1
+edwards$Female[edwards$Gender=="1. Male"|edwards$Gender=="3. Other (2016) "] <- 0
+
+# Age
+edwards$Age[edwards$Age=="97. 97 years old (1952, 1974, 1996 and later: or older); 2012,2016: 90"] <- 97
+edwards$Age[edwards$Age=="98. 98 years old (1958-1962, 1966, 1968: or older)"] <- 98
+edwards$Age[edwards$Age=="99. 99 years old (1976-1990,1994,2002: or older)"] <- 99
+edwards$Age <- as.numeric(edwards$Age)
+
+
+# Frequency of Church Attendance
+edwards$Attendance[edwards$Church_Attendance=="5. Never (1990 and later: 'No' in filter)"] <- 0
+edwards$Attendance[edwards$Church_Attendance=="4. A few times a year"] <- 1
+edwards$Attendance[edwards$Church_Attendance=="3. Once or twice a month"] <- 2
+edwards$Attendance[edwards$Church_Attendance=="2. Almost every week (no cases in 1970)"] <- 3
+edwards$Attendance[edwards$Church_Attendance=="1. Every week (Except 1970: almost every week)"] <- 4
+edwards$Voted[edwards$Voted=="1. No, did not vote"] <- 0
+edwards$Voted[edwards$Voted=="2. Yes, voted"]      <- 1
+edwards$Voted <- as.numeric(edwards$Voted)
+
+
+# Religion
+
+edwards$Protestant[edwards$Religion!="1. Protestant"] <- 0
+edwards$Protestant[edwards$Religion=="1. Protestant"] <- 1
+
+edwards$Catholic[edwards$Religion!="2. Catholic [Roman Catholic]"] <- 0
+edwards$Catholic[edwards$Religion=="2. Catholic [Roman Catholic]"] <- 1
+
+edwards$Jewish[edwards$Religion!="3. Jewish"] <- 0
+edwards$Jewish[edwards$Religion=="3. Jewish"] <- 1
+
+edwards$Other_dontknow_Religion[edwards$Religion!="4. Other and none (also includes DK preference)"] <- 0
+edwards$Other_dontknow_Religion[edwards$Religion=="4. Other and none (also includes DK preference)"] <- 1
+
+
+# Create data set with average attendance
+religion <- subset(edwards, !is.na(Attendance))
+
+rep_model <-  Republican ~ # Outcome of interest
+  Attendance + 
+  Catholic + 
+  Jewish + 
+  Protestant + 
+  Attendance*Catholic + 
+  Attendance*Jewish +
+  Attendance*Protestant +
+  highschool +
+  somecollege +
+  college +
+  Female +
+  Age +
+  Black +
+  Latino +
+  income_middlethird +
+  income_topthird +
+  Year
+
+
+#Run Meeting model
+edwards1  <- glm(rep_model, data = edwards) #Specify model
+edwards1_model <- tidy(edwards1, conf.int = TRUE) %>% 
+  filter(!str_detect(term, 'factor|Intercept'))
+new_order <- order(edwards1_model$estimate, decreasing = FALSE)
+edwards1_model$term <- as.character(edwards1_model$term)
+edwards1_model$term <- factor(edwards1_model$term, levels = edwards1_model$term[new_order])
+# plot coefficient plot
+
+edwards1_plot <- ggplot(edwards1_model, aes(x=term, y = estimate)) + 
+  geom_hline(yintercept=0, colour="#8C2318") +  # Line at 0
+  geom_pointrange(aes(ymin=conf.low, ymax=conf.high)) +  # Ranges for each coefficient
+  labs(x="", y="Coefficient Estimate", title="Logit of Religiosity and Likelihood of Being Republican") +
+  theme(plot.title = element_text(size = 6)) +
+  theme(legend.title = element_blank()) +
+  theme(axis.title=element_text(size=8)) +
+  coord_flip() +
+  theme_minimal()
+ggplotly(edwards1_plot)
+
+rm(edwards1)
+rm(edwards1_model)
+rm(edwards1_plot)
+
+```
+
+### Church Attendance and Likelihood of Voting (Time Trend)
+
+
+```{r}
+# Time Trend graph of LIKELIHOOD OF VOTING, AS A FUNCTION OF church attendance
+
+voting <- subset(religion, !is.na(Voted) & !is.na(Attendance)) %>%
+  group_by(Year) %>% 
+  mutate(weekly.voted = mean(Voted[Attendance==4]),
+         never.voted = mean(Voted[Attendance==0]))
+
+
+#Graph of the likelihood of voting, for people that attend church weekly, and people that never attend church
+church_vote <- ggplotly(ggplot() + 
+                          geom_line(data = subset(voting,!is.na(Attendance)), aes(x = Year, y = weekly.voted, text = "<b>Likelihood of Voting (Attend Church Weekly)</b>"), color = "blue") +
+                          geom_line(data = subset(voting,!is.na(Attendance)), aes(x = Year, y = never.voted, text = "<b>Likelihood of Voting(Never Attend Church)</b>"), color = "grey") +
+                          xlab('Year') +
+                          ylab('Likelihood of Voting') +
+                          ggtitle("Likelihood of Voting, by Freq. of Church Attendance (1970-2016)") +
+                          theme(plot.title = element_text(size = 12)) +
+                          theme(legend.title = element_blank()) +
+                          theme(axis.title=element_text(size=8)))
+
+church_vote
+
+rm(religion)
+rm(voting)
+rm(church_vote)
+
+
+```
+
+
+
+Row {.tabset .tabset-fade data-height=600}
+--------------------------------------------------------
+
+### Rural/Urban Geography and Political Behavior - Katie Thompson
+
+I ask how one’s geographical area shapes their political beliefs. If there are geographic differences in political beliefs and engagement, this supports Bishop's argument about the effects of geographic clustering on politics. This is interesting because it causes a continuous divide within the country with what states are considered “red” versus “blue”. Shadowing Washington University’s Webster and Stanford’s Gregory Martin’s ideas of residential sorting and geographical polarization (2020), I argue that the psychology involved in homogeneous political communities is strongly correlated to the political stances that are taken. I also use data from the American National Election Studies to present analyses that support my hypothesis.
+
+My first figure presents the results of a logit regression on the likelihood of identifying as Republican. I find that men that live in rural areas are more likely to identify as Republican.
+
+My next figure presents the results of a linear regression on one's level of political engagement.
+
+### Rural/Urban Geography and Partisanship (Regression)
+
+```{r}
+thompson <- anes
+
+thompson$Age[thompson$Age=="97. 97 years old (1952, 1974, 1996 and later: or older); 2012,2016: 90"] <- 97
+thompson$Age[thompson$Age=="98. 98 years old (1958-1962, 1966, 1968: or older)"] <- 98
+thompson$Age[thompson$Age=="99. 99 years old (1976-1990,1994,2002: or older)"] <- 99
+thompson$Age <- as.numeric(thompson$Age)
+
+# Political Activity
+thompson$Political_Activity[thompson$campaign_activity_count=="1. Lowest level of participation (none)"] <- 1
+thompson$Political_Activity[thompson$campaign_activity_count=="2"] <- 2
+thompson$Political_Activity[thompson$campaign_activity_count=="3"] <- 3
+thompson$Political_Activity[thompson$campaign_activity_count=="4"] <- 4
+thompson$Political_Activity[thompson$campaign_activity_count=="5"] <- 5
+thompson$Political_Activity[thompson$campaign_activity_count=="6. Highest level of participation in campaign activities"] <- 6
+
+#Respondent's Partisan ID
+thompson$party_3[thompson$Party_ID_3=="1. Democrats (including leaners)"] <- 1
+thompson$party_3[thompson$Party_ID_3=="2. Independents"] <- 2
+thompson$party_3[thompson$Party_ID_3=="3. Republicans (including leaners)"] <- 2
+
+
+# Male
+thompson$Male[thompson$Gender=="2. Female" | thompson$Gender=="3. Other (2016)"] <- 0
+thompson$Male[thompson$Gender=="1. Male"] <- 1
+
+# Race
+thompson$Black <- 0
+thompson$Black[thompson$Race_4=="2. Black non-Hispanic"] <- 1
+thompson$White <- 0
+thompson$White[thompson$Race_4=="1. White non-Hispanic"] <- 1
+thompson$Latino <- 0
+thompson$Latino[thompson$Race_4=="3. Hispanic"] <- 1
+
+# Education
+thompson$Grade_School <- 0
+thompson$Grade_School[thompson$Education_4=="1. Grade school or less (0-8 grades)"] <- 1
+thompson$High_School <- 0
+thompson$High_School[thompson$Education_4=="2. High school (12 grades or fewer, incl. non-college"] <- 1
+thompson$Some_College <- 0
+thompson$Some_College[thompson$Education_4=="3. Some college (13 grades or more but no degree;"] <- 1
+thompson$College <- 0
+thompson$College[thompson$Education_4=="4. College or advanced degree (no cases 1948)"] <- 1
+
+# Household Income Distribution
+thompson$HHIncome[thompson$Family_Income_Group=="1. 0 to 16 percentile"] <- 1
+thompson$HHIncome[thompson$Family_Income_Group=="2. 17 to 33 percentile"] <- 2
+thompson$HHIncome[thompson$Family_Income_Group=="3. 34 to 67 percentile"] <- 3
+thompson$HHIncome[thompson$Family_Income_Group=="4. 68 to 95 percentile"] <- 4
+thompson$HHIncome[thompson$Family_Income_Group=="5. 96 to 100 percentile"] <- 5
+
+
+# Race
+thompson$Black <- 0
+thompson$Black[thompson$Race_4=="2. Black non-Hispanic"] <- 1
+thompson$White <- 0
+thompson$White[thompson$Race_4=="1. White non-Hispanic"] <- 1
+thompson$Latino <- 0
+thompson$Latino[thompson$Race_4=="3. Hispanic"] <- 1
+
+
+# Party Identification
+thompson$Republican[thompson$Party_ID_7=="3. Independent - Democrat" |thompson$Party_ID_7=="2. Weak Democrat"|thompson$Party_ID_7=="1. Strong Democrat"] <- 0
+thompson$Republican[thompson$Party_ID_7=="5. Independent - Republican" |thompson$Party_ID_7=="6. Weak Republican"|thompson$Party_ID_7=="7. Strong Republican"] <- 1
+
+thompson$Democrat[thompson$Party_ID_7=="3. Independent - Democrat"   |thompson$Party_ID_7=="2. Weak Democrat"  |thompson$Party_ID_7=="1. Strong Democrat"] <- 1
+thompson$Democrat[thompson$Party_ID_7=="5. Independent - Republican" |thompson$Party_ID_7=="6. Weak Republican"|thompson$Party_ID_7=="7. Strong Republican"] <- 0
+
+# Do people live in cities, suburbs, or rural areas?
+# City
+thompson$City[thompson$Urban=="1. Central cities"] <- 1
+thompson$City[thompson$Urban=="2. Suburban areas"|thompson$Urban=="3. Rural, small towns, outlying and adjacent areas"] <- 0
+
+# Suburbs
+thompson$Suburb[thompson$Urban=="2. Suburban areas"] <- 1
+thompson$Suburb[thompson$Urban=="1. Central cities"|thompson$Urban=="3. Rural, small towns, outlying and adjacent areas"] <- 0
+
+# Rural
+thompson$Rural[thompson$Urban=="3. Rural, small towns, outlying and adjacent areas"] <- 1
+thompson$Rural[thompson$Urban=="1. Central cities"|thompson$Urban=="2. Suburban areas"] <- 0
+
+rep_model <-  Republican ~ # Outcome of interest
+  Rural +
+  Age +
+  Male +
+  Black +
+  Latino +
+  High_School +
+  Some_College +
+  College +
+  HHIncome +
+  Year
+
+thompson2 <- glm(rep_model, data = thompson) #Specify model
+
+thompson2_model <- tidy(thompson2, conf.int = TRUE) %>% 
+  filter(!str_detect(term, 'factor|Intercept'))
+new_order <- order(thompson2_model$estimate, decreasing = FALSE)
+thompson2_model$term <- as.character(thompson2_model$term)
+thompson2_model$term <- factor(thompson2_model$term, levels = thompson2_model$term[new_order])
+# plot coefficient plot
+thompson2_plot <- ggplot(thompson2_model, aes(x=term, y = estimate)) + 
+  geom_hline(yintercept=0, colour="#8C2318") +  # Line at 0
+  geom_pointrange(aes(ymin=conf.low, ymax=conf.high)) +  # Ranges for each coefficient
+  labs(x="", y="Coefficient Estimate", title="OLS Estimates of Urbanicity on \nRepublican Partisanship") +
+  theme(plot.title = element_text(size = 6)) +
+  theme(legend.title = element_blank()) +
+  theme(axis.title=element_text(size=8)) +
+  coord_flip() +
+  theme_minimal()
+
+ggplotly(thompson2_plot)
+
+```
+
+
+### Engagement (Regression)
+
+```{r}
+model1 <- Political_Activity ~ # Outcome of interest
+  Rural +
+  City +
+  party_3 +
+  Age +
+  Male +
+  Black +
+  Latino +
+  High_School +
+  Some_College +
+  College +
+  HHIncome +
+  Year
+
+thompson1 <- lm(data = thompson, formula = model1)
+
+thompson1_model <- tidy(thompson1, conf.int = TRUE) %>% 
+  filter(!str_detect(term, 'factor|Intercept'))
+new_order <- order(thompson1_model$estimate, decreasing = FALSE)
+thompson1_model$term <- as.character(thompson1_model$term)
+thompson1_model$term <- factor(thompson1_model$term, levels = thompson1_model$term[new_order])
+# plot coefficient plot
+thompson1_plot <- ggplot(thompson1_model, aes(x=term, y = estimate)) + 
+  geom_hline(yintercept=0, colour="#8C2318") +  # Line at 0
+  geom_pointrange(aes(ymin=conf.low, ymax=conf.high)) +  # Ranges for each coefficient
+  labs(x="", y="Coefficient Estimate", title="OLS Estimates of Urbanicity on \nPolitical Engagement") +
+  theme(plot.title = element_text(size = 6)) +
+  theme(legend.title = element_blank()) +
+  theme(axis.title=element_text(size=8)) +
+  coord_flip() +
+  theme_minimal()
+
+ggplotly(thompson1_plot)
+
+
+rm("thompson","activity","engagement","bias","immigration","thompson1","thompson1_model",
+   "thompson1_plot","thompson2","thompson2_model","thompson2_plot", "anes")
+
+
+```
+
+
