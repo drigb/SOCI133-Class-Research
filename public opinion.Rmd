@@ -1,0 +1,437 @@
+---
+title: "Public Opinion"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: scroll
+    theme: united
+---
+
+<style>
+
+body {
+  padding-top:0px
+}
+
+.navbar{
+  visibility: hidden
+}
+
+.colored {
+  background-color: #e4e2d8;
+}
+
+</style>
+
+
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(crosstalk)
+library(hrbrthemes)
+library(gmodels)
+library(flexdashboard)
+library(plotly)
+library(leaflet)
+library(numform)
+library(USAboundaries)
+library(gridExtra)
+library(ggmap)
+library(DT)
+library(knitr)
+library(tigris)
+library(devtools)
+library(rappdirs)
+library(leaflet)
+library(htmlwidgets)
+library(sp)
+library(dplyr)
+library(rgeos)
+library(rgdal)
+library(maptools)
+library(sf)
+library(spdep)
+library(mapview)
+library(USAboundariesData)
+library(broom)
+library(hrbrthemes)
+
+
+```
+
+
+
+```{r, include=FALSE}
+filename <- 'https://davidrigbysociology.s3.amazonaws.com/anes_1946-2016.csv' # Paste the file location for the data set between this set of quotation marks and run this code
+
+#   d) Read the data file into R and assign it in an object named anes
+anes <- read.csv(filename, stringsAsFactors = FALSE)
+
+```
+
+
+Public Opinion {data-orientation=rows}
+===========================================================
+
+Row {.tabset .tabset-fade data-height=600}
+--------------------------------------------------------
+
+### Partisanship, Trust, and Welfare Attitudes - Ceci Creissen
+
+
+Stereotypes about welfare recipients led me to question whether welfare was a polarizing issue.
+I wanted to understand whether trust in the government and party membership could predict an individual’s views on welfare. 
+
+My first figure is a graph that shows the relationship between trust in the government and attitudes on welfare over time from 1970-2016. The red line represents individuals with a low trust in the federal government and the blue line represents individuals with high levels of trust in the federal government. From this graph, it can be concluded that people who trust the government tend to have a higher view of welfare, but both high trust and low trust people show a lot of variation in attitude over the years. Starting in 1970, both groups show increasingly positive feelings towards Welfare. Both groups experience a decline and sharp increase from 1990-2000 and in the early 2000s both groups show another increase. Ultimately, Americans who do not trust the government tend to have more negative feelings about welfare, but the attitude’s of both groups tend to vary around the same time and in the same direction. This makes me think that there must be another factor influencing public opinion on welfare. Future research is needed.
+
+My next figure is a linear regression of level of trust in government on welfare attitudes. This model shows that race, ethnicity, income, and gender all have a positive relationship with warmer attitudes toward welfare recipients. Having a higher level of education, and self-identifying as conservative politically are associated with more negative attitudes toward welfare recipients. Controlling for all of these other factors, having greater trust in the federal government is associated with more positive attitudes toward welfare recipients.
+
+### Welfare Attitudes by Government Trust (Time Trend)
+
+```{r}
+
+creisen <- anes
+# Transform data
+
+# Race/ethnicity
+creisen$Latino[creisen$Race_4 == "3. Hispanic"] <- 1
+creisen$Latino[creisen$Race_4 == "1. White non-Hispanic"|creisen$Race_4 == "2. Black non-Hispanic"|creisen$Race_4 == "4. Other or multiple races, non-Hispanic"] <- 0
+
+creisen$Black[creisen$Race_4 == "2. Black non-Hispanic"] <- 1
+creisen$Black[creisen$Race_4 == "1. White non-Hispanic"|creisen$Race_4 == "3. Hispanic"|creisen$Race_4 == "4. Other or multiple races, non-Hispanic"] <- 0
+
+creisen$White[creisen$Race_4 == "1. White non-Hispanic"] <- 1
+creisen$White[creisen$Race_4 == "2. Black non-Hispanic"|creisen$Race_4 == "3. Hispanic"|creisen$Race_4 == "4. Other or multiple races, non-Hispanic"] <- 0
+
+# Gender
+creisen$Female[creisen$Gender=="2. Female"] <- 1
+creisen$Female[creisen$Gender=="1. Male"|creisen$Gender=="3. Other (2016) "] <- 0
+
+# Age
+creisen$Age[creisen$Age=="97. 97 years old (1952, 1974, 1996 and later: or older); 2012,2016: 90"] <- 97
+creisen$Age[creisen$Age=="98. 98 years old (1958-1962, 1966, 1968: or older)"] <- 98
+creisen$Age[creisen$Age=="99. 99 years old (1976-1990,1994,2002: or older)"] <- 99
+creisen$Age <- as.numeric(creisen$Age)
+
+
+#Grade School
+creisen$gradeschool[creisen$Education_4!="1. Grade school or less (0-8 grades)"] <- 0
+creisen$gradeschool[creisen$Education_4=="1. Grade school or less (0-8 grades)"] <- 1
+
+#High School
+creisen$highschool[creisen$Education_4!="2. High school (12 grades or fewer, incl. non-college"] <- 0
+creisen$highschool[creisen$Education_4=="2. High school (12 grades or fewer, incl. non-college"] <- 1
+
+#Some College
+creisen$somecollege[creisen$Education_4!="3. Some college (13 grades or more but no degree;"] <- 0
+creisen$somecollege[creisen$Education_4=="3. Some college (13 grades or more but no degree;"] <- 1
+
+#College
+creisen$college[creisen$Education_4!="4. College or advanced degree (no cases 1948)"] <- 0
+creisen$college[creisen$Education_4=="4. College or advanced degree (no cases 1948)"] <- 1
+
+#Income
+creisen$income_bottomthird[creisen$Family_Income=="1. 0 to 16 percentile" | creisen$Family_Income=="2. 17 to 33 percentile"] <- 1
+creisen$income_bottomthird[creisen$Family_Income!="1. 0 to 16 percentile" & creisen$Family_Income!="2. 17 to 33 percentile"] <- 0
+
+
+creisen$ideology7[creisen$Ideology_ID_7=="1. Extremely liberal"]      <- 1
+creisen$ideology7[creisen$Ideology_ID_7=="2. Liberal"]                <- 2
+creisen$ideology7[creisen$Ideology_ID_7=="3. Slightly liberal"]       <- 3
+creisen$ideology7[creisen$Ideology_ID_7=="4. Moderate, middle of the road"] <- 4
+creisen$ideology7[creisen$Ideology_ID_7=="5. Slightly conservative"]  <- 5
+creisen$ideology7[creisen$Ideology_ID_7=="6. Conservative"]           <- 6
+creisen$ideology7[creisen$Ideology_ID_7=="7. Extremely conservative"] <- 7
+
+# Welfare Thermometer
+party <- creisen
+party$PeopleWelfare_Thermometer[party$PeopleWelfare_Thermometer=="97. 97-100 Degrees"] <- 100
+
+
+party$PeopleWelfare_Thermometer <- as.numeric(party$PeopleWelfare_Thermometer)
+
+# Poor People Thermometer
+
+party$PoorPeople_Thermometer[party$PoorPeople_Thermometer=="97. 97-100 Degrees"] <- 100
+
+
+party$PoorPeople_Thermometer <- as.numeric(party$PoorPeople_Thermometer)
+
+
+# Public Trust
+party$trust[party$trust_people=="1. Can't be too careful"] <- 0
+party$trust[party$trust_people=="2. Most people can be trusted"] <- 1
+party$trust <- as.numeric(party$trust)
+
+
+# Trust in Government
+party$trustgov[party$Trust_FedGov=="1. None of the time (VOLUNTEERED); almost never (1966"] <- 1
+party$trustgov[party$Trust_FedGov=="2. Some of the time"] <- 2
+party$trustgov[party$Trust_FedGov=="3. Most of the time"] <- 3
+party$trustgov[party$Trust_FedGov=="4. Just about always"] <- 4
+
+
+
+#Graph of change in welfare thermometer, by level of trust in government, over time 
+welfare_att <- subset(party, !is.na(trustgov) & !is.na(PeopleWelfare_Thermometer)) %>%
+                group_by(Year) %>%
+                mutate(avg.hight_trust = mean(PeopleWelfare_Thermometer[trustgov==4]),
+                       avg.no_trust = mean(PeopleWelfare_Thermometer[trustgov==1]))
+
+welfare_trend <- ggplot() + 
+  geom_line(data = welfare_att, aes(x = Year, y = avg.hight_trust, text = "<b>Average Feeling Welfare (0-100)</b>"), color = "Blue") +
+  geom_line(data = welfare_att, aes(x = Year, y = avg.no_trust, text = "<b>Average Feeling Welfare (0-100)</b>"), color = "Red") +
+  xlab('Year') +
+  ylab('Avg. Attitude') +
+  ggtitle("Change Attitudes Welfare Thermometer, by Trust in Gov (creisen 1970-2016)") +
+  theme(plot.title = element_text(size = 12)) +
+  theme(axis.title=element_text(size=8))
+
+welfare_trend <- ggplotly(welfare_trend)
+welfare_trend
+
+```
+
+
+
+### Welfare Attitudes by Government Trust (Regression)
+
+```{r}
+
+
+welfare_govtrust <-  PeopleWelfare_Thermometer ~ # Outcome of interest
+  trustgov +
+  ideology7 +
+  Female +
+  Age +
+  Black +
+  Latino +
+  highschool +
+  somecollege +
+  college +
+  income_bottomthird +
+  Year
+
+creisen1 <- lm(data = party, formula = welfare_govtrust)
+
+creisen1_model <- tidy(creisen1, conf.int = TRUE) %>% 
+  filter(!str_detect(term, 'factor|Intercept'))
+new_order <- order(creisen1_model$estimate, decreasing = FALSE)
+creisen1_model$term <- as.character(creisen1_model$term)
+creisen1_model$term[creisen1_model$term=="Black1"] <- "Black"
+creisen1_model$term[creisen1_model$term=="trustgov"] <- "Trust in Government"
+creisen1_model$term[creisen1_model$term=="ideology7"] <- "Political Ideology"
+
+
+creisen1_model$term <- factor(creisen1_model$term, levels = creisen1_model$term[new_order])
+# plot coefficient plot
+creisen1_plot <- ggplot(creisen1_model, aes(x=term, y = estimate)) + 
+  geom_hline(yintercept=0, colour="#8C2318") +  # Line at 0
+  geom_pointrange(aes(ymin=conf.low, ymax=conf.high)) +  # Ranges for each coefficient
+  labs(x="", y="Coefficient Estimate", title="Trust in Gov't. and Welfare Attitudes (Scale 0-100)") +
+  theme(plot.title = element_text(size = 6)) +
+  theme(legend.title = element_blank()) +
+  theme(axis.title=element_text(size=8)) +
+  coord_flip() +
+  theme_minimal()
+
+ggplotly(creisen1_plot)
+
+rm(creisen)
+rm(party)
+rm(welfare_att)
+rm(welfare_trend)
+rm(creisen1)
+rm(creisen1_model)
+rm(creisen1_plot)
+
+
+```
+
+Row {.tabset .tabset-fade data-height=600}
+--------------------------------------------------------
+
+### Religion and Presidential Approval - Zachary Dobbin
+
+The separation of church and state is an important political concept; however, in practice it can be a bit tricky.  Realistically, religion influences the decisions of both citizens and government entities either overtly or subtly.  Although it is almost unavoidable that this influence is present, the extent of this influence is important to note as it shapes our very country’s fate.
+
+Figure shows the change in average presidential approval among three religions: Judaism, Catholicism, and Protestantism. There is an overall decrease in presidential approval for protestants by 31%, while approval among Jewish people increased by 17%  and decreased by 17% among Catholics between 1970 and 2016.  
+
+Figure 2 is a coefficient plot showing the results of a logit regression of religion on presidential approval, controlling gender, age, race, ethnicity, level of education, income, and syrvey year. While being Protestant does not have a statistically significant effect on presidential approval (relative to Catholics), Being Jewish is associated with a decreased likelihood of reporting that one approves of the president.
+
+### Religion and Presidential Approval (Time Trend)
+
+```{r}
+
+dobbin <- anes
+
+#   e) Get a list of the names of all of the variables in your data set
+
+dobbin$Attendance[dobbin$Church_Attendance=="5. Never (1990 and later: 'No' in filter)"] <- 0
+dobbin$Attendance[dobbin$Church_Attendance=="4. A few times a year"] <- 1
+dobbin$Attendance[dobbin$Church_Attendance=="3. Once or twice a month"] <- 2
+dobbin$Attendance[dobbin$Church_Attendance=="2. Almost every week (no cases in 1970)"] <- 3
+dobbin$Attendance[dobbin$Church_Attendance=="1. Every week (Except 1970: almost every week)"] <- 4
+
+
+dobbin$Voted[dobbin$Voted=="1. No, did not vote"] <- 0
+dobbin$Voted[dobbin$Voted=="2. Yes, voted"]      <- 1
+dobbin$Voted <- as.numeric(dobbin$Voted)
+
+# Party Voted for
+dobbin$party_of_vote[dobbin$Pres_Party_Voted=="1. Democrat"] <- "Democrat"
+dobbin$party_of_vote[dobbin$Pres_Party_Voted=="2. Republican"] <- "Republican"
+
+# Presidential Approval
+
+dobbin$approval[dobbin$Presidential_Approval=="2. Disapprove"] <- 0
+dobbin$approval[dobbin$Presidential_Approval=="1. Approve"] <- 1
+dobbin$approval <- as.numeric(dobbin$approval)
+
+
+# Religion
+
+dobbin$Protestant[dobbin$Religion!="1. Protestant"] <- 0
+dobbin$Protestant[dobbin$Religion=="1. Protestant"] <- 1
+
+dobbin$Catholic[dobbin$Religion!="2. Catholic [Roman Catholic]"] <- 0
+dobbin$Catholic[dobbin$Religion=="2. Catholic [Roman Catholic]"] <- 1
+
+dobbin$Jewish[dobbin$Religion!="3. Jewish"] <- 0
+dobbin$Jewish[dobbin$Religion=="3. Jewish"] <- 1
+
+dobbin$Other_dontknow_Religion[dobbin$Religion!="4. Other and none (also includes DK preference)"] <- 0
+dobbin$Other_dontknow_Religion[dobbin$Religion=="4. Other and none (also includes DK preference)"] <- 1
+
+
+# Age
+dobbin$Age[dobbin$Age=="97. 97 years old (1952, 1974, 1996 and later: or older); 2012,2016: 90"] <- 97
+dobbin$Age[dobbin$Age=="98. 98 years old (1958-1962, 1966, 1968: or older)"] <- 98
+dobbin$Age[dobbin$Age=="99. 99 years old (1976-1990,1994,2002: or older)"] <- 99
+dobbin$Age <- as.numeric(dobbin$Age)  
+
+
+# Highest level of education
+dobbin$education[dobbin$Education_4=="1. Grade school or less (0-8 grades)"] <- 0
+dobbin$education[dobbin$Education_4=="2. High school (12 grades or fewer, incl. non-college"] <- 1
+dobbin$education[dobbin$Education_4=="3. Some college (13 grades or more but no degree;"] <- 2
+dobbin$education[dobbin$Education_4=="4. College or advanced degree (no cases 1948)"] <- 3
+
+
+#Grade School
+dobbin$gradeschool[dobbin$Education_4!="1. Grade school or less (0-8 grades)"] <- 0
+dobbin$gradeschool[dobbin$Education_4=="1. Grade school or less (0-8 grades)"] <- 1
+
+#High School
+dobbin$highschool[dobbin$Education_4!="2. High school (12 grades or fewer, incl. non-college"] <- 0
+dobbin$highschool[dobbin$Education_4=="2. High school (12 grades or fewer, incl. non-college"] <- 1
+
+#Some College
+dobbin$somecollege[dobbin$Education_4!="3. Some college (13 grades or more but no degree;"] <- 0
+dobbin$somecollege[dobbin$Education_4=="3. Some college (13 grades or more but no degree;"] <- 1
+
+#College
+dobbin$college[dobbin$Education_4!="4. College or advanced degree (no cases 1948)"] <- 0
+dobbin$college[dobbin$Education_4=="4. College or advanced degree (no cases 1948)"] <- 1
+
+#Income
+dobbin$income_bottomthird[dobbin$Family_Income=="1. 0 to 16 percentile" | dobbin$Family_Income=="2. 17 to 33 percentile"] <- 1
+dobbin$income_bottomthird[dobbin$Family_Income!="1. 0 to 16 percentile" & dobbin$Family_Income!="2. 17 to 33 percentile"] <- 0
+
+# Gender
+dobbin$gender[dobbin$Gender=="2. Female"] <- "Female"
+dobbin$gender[dobbin$Gender=="1. Male"] <- "Male"
+
+# Indicators for party membership
+dobbin$Republican[dobbin$Party_ID_7=="3. Independent - Democrat" |dobbin$Party_ID_7=="2. Weak Democrat"|dobbin$Party_ID_7=="1. Strong Democrat"] <- 0
+dobbin$Republican[dobbin$Party_ID_7=="5. Independent - Republican" |dobbin$Party_ID_7=="6. Weak Republican"|dobbin$Party_ID_7=="7. Strong Republican"] <- 1
+
+
+dobbin$Democrat[dobbin$Party_ID_7=="3. Independent - Democrat" |dobbin$Party_ID_7=="2. Weak Democrat"|dobbin$Party_ID_7=="1. Strong Democrat"] <- 1
+dobbin$Democrat[dobbin$Party_ID_7=="5. Independent - Republican" |dobbin$Party_ID_7=="6. Weak Republican"|dobbin$Party_ID_7=="7. Strong Republican"] <- 0
+
+
+# Race
+dobbin$Race_4[dobbin$Race_4==""] <- NA
+dobbin$Black[dobbin$Race_4!="2. Black non-Hispanic"] <- 0
+dobbin$Black[dobbin$Race_4=="2. Black non-Hispanic"] <- 1
+dobbin$White[dobbin$Race_4!="1. White non-Hispanic"] <- 0
+dobbin$White[dobbin$Race_4=="1. White non-Hispanic"] <- 1
+
+dobbin$Latino[dobbin$Race_4!="3. Hispanic"] <- 0
+dobbin$Latino[dobbin$Race_4=="3. Hispanic"] <- 1
+
+
+# Time Trend graph of AVERAGE PRESIDENTIAL APPROVAL, AS A FUNCTION OF church attendance
+approval_data <- subset(dobbin, !is.na(approval) & !is.na(Religion) &Religion != "" &  Religion !="4. Other and none (also includes DK preference)") %>%
+  group_by(Year) %>% 
+  mutate(jewish.approval        = mean(approval[Jewish==1]),
+         protestant.approval    = mean(approval[Protestant==1]),
+         catholic.approval      = mean(approval[Catholic==1]))
+
+
+
+#Graph of the likelihood of voting, for people that attend church weekly, and people that never attend church
+pres_approval <- ggplotly(ggplot() + 
+                          geom_line(data = approval_data, aes(x = Year, y = jewish.approval, group = Religion, text = "<b>Average Presidential Approval</b>"), color="Blue") +
+                          geom_line(data = approval_data, aes(x = Year, y = protestant.approval, group = Religion, text = "<b>Average Presidential Approval</b>"), color="Green") +
+                          geom_line(data = approval_data, aes(x = Year, y = catholic.approval, group = Religion, text = "<b>Average Presidential Approval</b>"), color="orange") +
+                          xlab('Year') +
+                          ylab('Avg. Presidential Approval') +
+                          ggtitle("Change in Presidential Avg. Approval, By Religion (dobbin 1970-2016)") +
+                          theme(plot.title = element_text(size = 12)) +
+                          theme(legend.title = element_blank()) +
+                          theme(axis.title=element_text(size=8)))
+
+pres_approval
+
+
+```
+
+
+
+### Religion and Presidential Approval (Regression)
+
+```{r}
+
+# logit regression of presidential approval and Religion - controlling for Frequency of church attendance, party, age, race, education, income, and survey year
+# construct model
+approval_model <-  approval ~ # Outcome of interest
+  Jewish +
+  Protestant +
+  Republican +
+  Attendance +
+  Age +
+  gender +
+  Black +
+  Latino +
+  highschool +
+  somecollege +
+  college +
+  income_bottomthird +
+  Year
+
+dobbin1 <- glm(approval_model, data = approval_data) #Specify model
+
+dobbin1_model <- tidy(dobbin1, conf.int = TRUE) %>% 
+  filter(!str_detect(term, 'factor|Intercept'))
+new_order <- order(dobbin1_model$estimate, decreasing = FALSE)
+dobbin1_model$term <- as.character(dobbin1_model$term)
+dobbin1_model$term <- factor(dobbin1_model$term, levels = dobbin1_model$term[new_order])
+# plot coefficient plot
+dobbin1_plot <- ggplot(dobbin1_model, aes(x=term, y = estimate)) + 
+  geom_hline(yintercept=0, colour="#8C2318") +  # Line at 0
+  geom_pointrange(aes(ymin=conf.low, ymax=conf.high)) +  # Ranges for each coefficient
+  labs(x="", y="Coefficient Estimate", title="Logit Estimates of Religion on \nPresidential Approval") +
+  theme(plot.title = element_text(size = 6)) +
+  theme(legend.title = element_blank()) +
+  theme(axis.title=element_text(size=8)) +
+  coord_flip() +
+  theme_minimal()
+
+ggplotly(dobbin1_plot)
+
+rm("dobbin","approval_data","pres_approval","dobbin1","dobbin1_model","dobbin1_plot","anes")
+
+
+```
