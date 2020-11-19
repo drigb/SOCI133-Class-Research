@@ -1,0 +1,293 @@
+---
+title: "SOCI 133 Fall 2020 - Class Research"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: scroll
+    theme: united
+---
+
+<style>
+
+body {
+  padding-top:0px
+}
+
+.navbar{
+  visibility: hidden
+}
+
+.colored {
+  background-color: #e4e2d8;
+}
+
+</style>
+
+
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(crosstalk)
+library(hrbrthemes)
+library(gmodels)
+library(flexdashboard)
+library(plotly)
+library(leaflet)
+library(numform)
+library(USAboundaries)
+library(gridExtra)
+library(ggmap)
+library(DT)
+library(knitr)
+library(tigris)
+library(devtools)
+library(rappdirs)
+library(leaflet)
+library(htmlwidgets)
+library(sp)
+library(dplyr)
+library(rgeos)
+library(rgdal)
+library(maptools)
+library(sf)
+library(spdep)
+library(mapview)
+library(USAboundariesData)
+library(broom)
+library(hrbrthemes)
+
+
+```
+
+
+
+```{r, include=FALSE}
+filename <- 'https://davidrigbysociology.s3.amazonaws.com/anes_1946-2016.csv' # Paste the file location for the data set between this set of quotation marks and run this code
+
+#   d) Read the data file into R and assign it in an object named anes
+anes <- read.csv(filename, stringsAsFactors = FALSE)
+
+```
+
+Political Socialization {data-orientation=rows}
+===========================================================
+
+Row {.tabset .tabset-fade data-height=600}
+--------------------------------------------------------
+
+### Parental Nativity and Participation - Claire Coppola
+
+My research looks at the relationship between parent nativity and an individual’s likelihood of voting. Using Campbell’s socialization theory (2006) and Putnam’s research (2000) on ties to one's community, I argue that individuals with native-born parents are more likely to vote and participate politically. I posed this research question because we can learn a lot about civic and political behavior from where one is from. This means that foreign-born parents’ engagement will differ depending on where they are from, and these norms may be passed on to the child through socialization. This knowledge is important because it can tell politicians which groups of people (for example, Asian immigrants) are more likely or less likely to participate, and therefore they know which groups to campaign to.
+
+My first figure displays a graph showing a comparison over time, from 1950 to 2016, of the likelihood of voting by parent nativity. The 2016 results show a negative correlation between having foreign-born parents and voting, whereas in 1950 there was a positive correlation between having foreign-born parents and voting. Through my research I found that one possible explanation for this outcome is that the origin of immigrants in the mid 1900s and the origin of immigrants in the 2000s were drastically different.
+
+My next figure is a coefficient plot of the results of a logit regression depicting the relationship between having a native-born parent and partisanship. From these regressions we can conclude that there is a positive correlation between having native-born parents and being a Republican, and also a positive correlation between having foreign-born parents and being a Democratic.
+
+
+### Parental Nativity and Voting (Time Trend)
+
+```{r}
+coppola <- anes
+# Political Activity
+coppola$Political_Activity[coppola$campaign_activity_count=="1. Lowest level of participation (none)"] <- 1
+coppola$Political_Activity[coppola$campaign_activity_count=="2"] <- 2
+coppola$Political_Activity[coppola$campaign_activity_count=="3"] <- 3
+coppola$Political_Activity[coppola$campaign_activity_count=="4"] <- 4
+coppola$Political_Activity[coppola$campaign_activity_count=="5"] <- 5
+coppola$Political_Activity[coppola$campaign_activity_count=="6. Highest level of participation in campaign activities"] <- 6
+
+# Father's Political Interest
+coppola$Political_Interest_Father[coppola$Political_Interest_Father=="1. Didn't pay much attention"] <- 1
+coppola$Political_Interest_Father[coppola$Political_Interest_Father=="2. Somewhat interested"] <- 2
+coppola$Political_Interest_Father[coppola$Political_Interest_Father=="3. Very much interested"] <- 3
+coppola$Political_Interest_Father <- as.numeric(coppola$Political_Interest_Father)
+
+# Mother's Political Interest
+coppola$Political_Interest_Mother[coppola$Political_Interest_Mother=="1. Didn't pay much attention"] <- 1
+coppola$Political_Interest_Mother[coppola$Political_Interest_Mother=="2. Somewhat interested"] <- 2
+coppola$Political_Interest_Mother[coppola$Political_Interest_Mother=="3. Very much interested"] <- 3
+coppola$Political_Interest_Mother <- as.numeric(coppola$Political_Interest_Mother)
+
+# Father's Partisan ID
+coppola$party_father3[coppola$Party_ID_Father=="1. Democrat"] <- 1
+coppola$party_father3[coppola$Party_ID_Father=="2. Independent (some years also: shifted around)"] <- 2
+coppola$party_father3[coppola$Party_ID_Father=="3. Republican"] <- 3
+
+
+# Parent nativity
+coppola$parent_fb[coppola$Parent_Nativity=="1. Yes"] <- "Native-Born"
+coppola$parent_fb[coppola$Parent_Nativity=="5. No"] <- "Foreign-Born"
+
+# Father's Democrat and Republican indicator variables
+coppola$father_democrat[coppola$Party_ID_Father!="1. Democrat"] <- 0
+coppola$father_democrat[coppola$Party_ID_Father=="1. Democrat"] <- 1
+
+coppola$father_republican[coppola$Party_ID_Father!="3. Republican"] <- 0
+coppola$father_republican[coppola$Party_ID_Father=="3. Republican"] <- 1
+
+
+# Mother's Partisan ID
+coppola$party_mother3[coppola$Party_ID_Mother=="1. Democrat"] <- 1
+coppola$party_mother3[coppola$Party_ID_Mother=="2. Independent (some years also: shifted around)"] <- 2
+coppola$party_mother3[coppola$Party_ID_Mother=="3. Republican"] <- 3
+
+# Mother's Democrat and Republican indicator variables
+coppola$mother_democrat[coppola$Party_ID_Mother!="1. Democrat"] <- 0
+coppola$mother_democrat[coppola$Party_ID_Mother=="1. Democrat"] <- 1
+
+coppola$mother_republican[coppola$Party_ID_Mother!="3. Republican"] <- 0
+coppola$mother_republican[coppola$Party_ID_Mother=="3. Republican"] <- 1
+
+
+#Respondent's Partisan ID
+coppola$party_3[coppola$Party_ID_3=="1. Democrats (including leaners)"] <- 1
+coppola$party_3[coppola$Party_ID_3=="2. Independents"] <- 2
+coppola$party_3[coppola$Party_ID_3=="3. Republicans (including leaners)"] <- 2
+
+# Respondent Democrat and Republican indicator variables
+coppola$Republican[coppola$Party_ID_7=="3. Independent - Democrat" |coppola$Party_ID_7=="2. Weak Democrat"|coppola$Party_ID_7=="1. Strong Democrat"] <- 0
+coppola$Republican[coppola$Party_ID_7=="5. Independent - Republican" |coppola$Party_ID_7=="6. Weak Republican"|coppola$Party_ID_7=="7. Strong Republican"] <- 1
+
+coppola$Democrat[coppola$Party_ID_7=="3. Independent - Democrat"   |coppola$Party_ID_7=="2. Weak Democrat"  |coppola$Party_ID_7=="1. Strong Democrat"] <- 1
+coppola$Democrat[coppola$Party_ID_7=="5. Independent - Republican" |coppola$Party_ID_7=="6. Weak Republican"|coppola$Party_ID_7=="7. Strong Republican"] <- 0
+
+# Democrat/Republican - 2 Category
+
+coppola$party2[coppola$Democrat==1] <- "Democrat"
+coppola$party2[coppola$Republican==1] <- "Republican"
+
+
+# Age
+coppola$Age[coppola$Age=="97. 97 years old (1952, 1974, 1996 and later: or older); 2012,2016: 90"] <- 97
+coppola$Age[coppola$Age=="98. 98 years old (1958-1962, 1966, 1968: or older)"] <- 98
+coppola$Age[coppola$Age=="99. 99 years old (1976-1990,1994,2002: or older)"] <- 99
+coppola$Age <- as.numeric(coppola$Age)  
+
+# Male
+coppola$Male[coppola$Gender=="2. Female" | coppola$Gender=="3. Other (2016)"] <- 0
+coppola$Male[coppola$Gender=="1. Male"] <- 1
+
+# Race
+coppola$Black <- 0
+coppola$Black[coppola$Race_4=="2. Black non-Hispanic"] <- 1
+coppola$White <- 0
+coppola$White[coppola$Race_4=="1. White non-Hispanic"] <- 1
+coppola$Latino <- 0
+coppola$Latino[coppola$Race_4=="3. Hispanic"] <- 1
+
+# Education
+coppola$Grade_School <- 0
+coppola$Grade_School[coppola$Education_4=="1. Grade school or less (0-8 grades)"] <- 1
+coppola$High_School <- 0
+coppola$High_School[coppola$Education_4=="2. High school (12 grades or fewer, incl. non-college"] <- 1
+coppola$Some_College <- 0
+coppola$Some_College[coppola$Education_4=="3. Some college (13 grades or more but no degree;"] <- 1
+coppola$College <- 0
+coppola$College[coppola$Education_4=="4. College or advanced degree (no cases 1948)"] <- 1
+
+# Household Income Distribution
+coppola$HHIncome[coppola$Family_Income_Group=="1. 0 to 16 percentile"] <- 1
+coppola$HHIncome[coppola$Family_Income_Group=="2. 17 to 33 percentile"] <- 2
+coppola$HHIncome[coppola$Family_Income_Group=="3. 34 to 67 percentile"] <- 3
+coppola$HHIncome[coppola$Family_Income_Group=="4. 68 to 95 percentile"] <- 4
+coppola$HHIncome[coppola$Family_Income_Group=="5. 96 to 100 percentile"] <- 5
+
+
+# Voted
+coppola$Voted[coppola$Voted=="1. No, did not vote"] <- 0
+coppola$Voted[coppola$Voted=="2. Yes, voted"]      <- 1
+coppola$Voted <- as.numeric(coppola$Voted)
+
+
+
+
+nativity <- subset(coppola, !is.na(parent_fb) & !is.na(Voted))
+nativity <- nativity %>%
+  group_by(Year, parent_fb) %>%
+  mutate(prop.voted = mean(Voted))
+
+
+#Graph of likelihood of voting, by parent nativity, over time
+ggplotly(ggplot() + 
+           geom_line(data = nativity, aes(x = Year, y = prop.voted, group = parent_fb, text = "<b>Likelihood of Voting</b>", color = parent_fb)) +
+           xlab('Year') +
+           ylab('Proportion of Pop.') +
+           ggtitle("Likelihood of Voting, by Parent Nativity (coppola 1950-2016)") +
+           scale_colour_discrete(name  ="Parental Nativity",
+                            breaks=c("Native-Born", "Foreign-Born"),
+                            labels=c("Native-Born", "Foreign-Born")) +
+           theme(plot.title = element_text(size = 12)) +
+           theme(axis.title=element_text(size=8)))
+
+```
+
+
+### Parental Nativity and Patisan ID (Regression)
+
+```{r}
+nativity$foreign_born <- 0
+nativity$foreign_born[nativity$parent_fb=="Foreign-Born"] <- 1
+
+
+#   Logit regressions of Mother's Partisan ID and father's Partisan ID on child's Partisan ID
+# Controlling for, age, gender, race, education level, income, and survey year
+#REPUBLICAN
+# b) Construct model
+rep_model <-  Republican ~ # Outcome of interest
+  parent_fb +
+  Political_Interest_Father +
+  Political_Interest_Mother +
+  Age +
+  Male +
+  Black +
+  Latino +
+  High_School +
+  Some_College +
+  College +
+  HHIncome +
+  Year
+
+rep_reg <- glm(rep_model, data = nativity) #Specify model
+# Display model results
+
+rep_table <- tidy(rep_reg, conf.int = TRUE) %>% 
+  filter(!str_detect(term, 'factor|Intercept'))
+
+# rename terms using lists above
+# get only significant (at 0.05 level) IVs
+
+# reorder vars for plot
+new_order <- order(rep_table$estimate, decreasing = FALSE)
+rep_table$term <- as.character(rep_table$term)
+rep_table$term[rep_table$term=="parent_fbNative-Born"] <- "Native-Born Parents"
+rep_table$term <- factor(rep_table$term, levels = rep_table$term[new_order])
+# plot coefficient plot
+
+rep_plot <- ggplot(rep_table, aes(x=term, y = estimate)) + 
+  geom_hline(yintercept=0, colour="#8C2318") +  # Line at 0
+  geom_pointrange(aes(ymin=conf.low, ymax=conf.high)) +  # Ranges for each coefficient
+  labs(x="", y="Coefficient Estimate", title="Coefficient Estimates of Regression Model of \nParental Nativity and Being Republican") +
+  theme(plot.title = element_text(size = 6)) +
+  theme(legend.title = element_blank()) +
+  theme(axis.title=element_text(size=8)) +
+  coord_flip() +
+  theme_minimal()
+
+ggplotly(rep_plot)
+
+rm(coppola)
+rm(nativity)
+rm(rep_reg)
+rm(rep_table)
+rm(rep_plot)
+
+
+```
+
+
+```{r}
+#FINAL CODE CHUNK
+rm(anes)
+```
+
+
