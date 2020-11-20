@@ -664,6 +664,212 @@ rm(davis1_plot)
 ```
 
 
+Row {.tabset .tabset-fade data-height=600}
+--------------------------------------------------------
+
+### Education and Engagement - Esther Eikins
+
+My research looked at how an individual’s socioeconomic background effects their political participation. The first half of this class was reading Campbell and Putnam and analyzing the possible factors for the decline of political participation in the US. Due to these readings, I was interested in understanding not only why people are politically engaged, but what kinds of people are politically engaged. I hypothesized that individuals with a higher socioeconomic status would be more politically active because they have better access to resources and possibly have more incentive—especially because Putnam tells us that better educated people are more likely to be politically engaged. I think this knowledge is important because we constantly study how and why people choose to be politically engaged in this country and my research provides one piece of the puzzle. 
+
+My first figure is a graph that measures average level of political engagement by education. Political engagement is measured here as a scale measuring involvement in various types of political activity (voting, discussing politics, campaign work, wearing a button, donating to a candidate, etc.). The blue line represents people who are college educated, the pink line shows people who have a high school level education, and the green line measures people with a grade school level education. The graph shows that the higher the level of education (at least college educated), the more political engaged a person is. 
+
+My next figure presents te results of a logit regression esimating the effect of an individual's level of education on their likelihood of working on a political campaign. This model controls for race/ethnicity, age, gender, and survey year. These results indicate that the more highly educated a person is, and the higher their income, the more likely they are to work on a campaign. This raises the possibility that the class of people involved in political campaigns have economic interests that are different from those less well-off.
+
+### Education and Engagement (Time Trend)
+```{r}
+eikins <- anes
+# Key Independent Variables
+    # Social Class
+    eikins$socialclass[eikins$Social_Class_8=="0. Lower class (VOLUNTEERED)"]         <- 1
+    eikins$socialclass[eikins$Social_Class_8=="1. Average working"]                   <- 2
+    eikins$socialclass[eikins$Social_Class_8=="2. Working--NA average or upper"]      <- 3
+    eikins$socialclass[eikins$Social_Class_8=="3. Upper working"]                     <- 4
+    eikins$socialclass[eikins$Social_Class_8=="4. Average middle"]                    <- 5
+    eikins$socialclass[eikins$Social_Class_8=="5. Middle class--NA average or upper"] <- 6
+    eikins$socialclass[eikins$Social_Class_8=="6. Upper middle"]                      <- 7
+    eikins$socialclass[eikins$Social_Class_8=="7. Upper class (VOLUNTEERED)"]         <- 6
+    
+      # Lower Class 
+      eikins$lowerclass[eikins$socialclass==0] <- 1
+      eikins$lowerclass[eikins$socialclass!=0] <- 0
+      
+    
+    # Highest level of education
+    eikins$education[eikins$Education_4=="1. Grade school or less (0-8 grades)"] <- 0
+    eikins$education[eikins$Education_4=="2. High school (12 grades or fewer, incl. non-college"] <- 1
+    eikins$education[eikins$Education_4=="3. Some college (13 grades or more but no degree;"] <- 2
+    eikins$education[eikins$Education_4=="4. College or advanced degree (no cases 1948)"] <- 3
+
+    #Grade School
+    eikins$gradeschool[eikins$Education_4!="1. Grade school or less (0-8 grades)"] <- 0
+    eikins$gradeschool[eikins$Education_4=="1. Grade school or less (0-8 grades)"] <- 1
+
+    #High School
+    eikins$highschool[eikins$Education_4!="2. High school (12 grades or fewer, incl. non-college"] <- 0
+    eikins$highschool[eikins$Education_4=="2. High school (12 grades or fewer, incl. non-college"] <- 1
+
+    #Some College
+    eikins$somecollege[eikins$Education_4!="3. Some college (13 grades or more but no degree;"] <- 0
+    eikins$somecollege[eikins$Education_4=="3. Some college (13 grades or more but no degree;"] <- 1
+
+    #College
+    eikins$college[eikins$Education_4!="4. College or advanced degree (no cases 1948)"] <- 0
+    eikins$college[eikins$Education_4=="4. College or advanced degree (no cases 1948)"] <- 1
+
+    #Income
+      # Bottom Third
+        eikins$income_bottomthird[eikins$Family_Income=="1. 0 to 16 percentile" | eikins$Family_Income=="2. 17 to 33 percentile"] <- 1
+        eikins$income_bottomthird[eikins$Family_Income!="1. 0 to 16 percentile" & eikins$Family_Income!="2. 17 to 33 percentile"] <- 0
+
+      # Middle Third
+        eikins$income_middlethird[eikins$Family_Income=="3. 34 to 67 percentile"] <- 1
+        eikins$income_middlethird[eikins$Family_Income!="3. 34 to 67 percentile"] <- 0
+
+      # Top Third
+        eikins$income_topthird[eikins$Family_Income=="4. 68 to 95 percentile" | eikins$Family_Income=="5. 96 to 100 percentile"] <- 1
+        eikins$income_topthird[eikins$Family_Income!="4. 68 to 95 percentile" & eikins$Family_Income!="5. 96 to 100 percentile"] <- 0
+
+        
+# Outcome Variables
+    # Voted
+    eikins$Voted[eikins$Voted=="1. No, did not vote"] <- 0
+    eikins$Voted[eikins$Voted=="2. Yes, voted"]      <- 1
+    eikins$Voted <- as.numeric(eikins$Voted)
+    
+    # Cmpaign Work
+    eikins$campaign_work[eikins$campaign_work=="1. No"]  <- 0
+    eikins$campaign_work[eikins$campaign_work=="2. Yes"] <- 1
+    eikins$campaign_work <- as.numeric(eikins$campaign_work)
+    
+    # Political Activity
+    eikins$Political_Activity[eikins$campaign_activity_count=="1. Lowest level of participation (none)"] <- 1
+    eikins$Political_Activity[eikins$campaign_activity_count=="2"] <- 2
+    eikins$Political_Activity[eikins$campaign_activity_count=="3"] <- 3
+    eikins$Political_Activity[eikins$campaign_activity_count=="4"] <- 4
+    eikins$Political_Activity[eikins$campaign_activity_count=="5"] <- 5
+    eikins$Political_Activity[eikins$campaign_activity_count=="6. Highest level of participation in campaign activities"] <- 6
+
+# Gender
+eikins$Female[eikins$Gender=="2. Female"] <- 1
+eikins$Female[eikins$Gender=="1. Male"] <- 0
+
+
+
+# Voted for Republican for President
+eikins$vote_for_republican[eikins$Pres_Party_Voted=="1. Democrat"] <- 0
+eikins$vote_for_republican[eikins$Pres_Party_Voted=="2. Republican"] <- 1
+
+#Party ID
+eikins$Republican[eikins$Party_ID_7=="3. Independent - Democrat" |eikins$Party_ID_7=="2. Weak Democrat"|eikins$Party_ID_7=="1. Strong Democrat"] <- 0
+eikins$Republican[eikins$Party_ID_7=="5. Independent - Republican" |eikins$Party_ID_7=="6. Weak Republican"|eikins$Party_ID_7=="7. Strong Republican"] <- 1
+
+
+eikins$Democrat[eikins$Party_ID_7=="3. Independent - Democrat" |eikins$Party_ID_7=="2. Weak Democrat"|eikins$Party_ID_7=="1. Strong Democrat"] <- 1
+eikins$Democrat[eikins$Party_ID_7=="5. Independent - Republican" |eikins$Party_ID_7=="6. Weak Republican"|eikins$Party_ID_7=="7. Strong Republican"] <- 0
+
+
+
+# Political Ideology of Respondent
+eikins$ideology7[eikins$Ideology_ID_7=="1. Extremely liberal"]      <- 1
+eikins$ideology7[eikins$Ideology_ID_7=="2. Liberal"]                <- 2
+eikins$ideology7[eikins$Ideology_ID_7=="3. Slightly liberal"]       <- 3
+eikins$ideology7[eikins$Ideology_ID_7=="4. Moderate, middle of the road"] <- 4
+eikins$ideology7[eikins$Ideology_ID_7=="5. Slightly conservative"]  <- 5
+eikins$ideology7[eikins$Ideology_ID_7=="6. Conservative"]           <- 6
+eikins$ideology7[eikins$Ideology_ID_7=="7. Extremely conservative"] <- 7
+
+
+
+# Age
+eikins$Age[eikins$Age=="97. 97 years old (1952, 1974, 1996 and later: or older); 2012,2016: 90"] <- 97
+eikins$Age[eikins$Age=="98. 98 years old (1958-1962, 1966, 1968: or older)"] <- 98
+eikins$Age[eikins$Age=="99. 99 years old (1976-1990,1994,2002: or older)"] <- 99
+eikins$Age <- as.numeric(eikins$Age)
+
+
+# Race
+eikins$Race_4[eikins$Race_4==""] <- NA
+eikins$Black[eikins$Race_4!="2. Black non-Hispanic"] <- 0
+eikins$Black[eikins$Race_4=="2. Black non-Hispanic"] <- 1
+eikins$Black <- as.numeric(eikins$Black)
+
+eikins$White[eikins$Race_4!="1. White non-Hispanic"] <- 0
+eikins$White[eikins$Race_4=="1. White non-Hispanic"] <- 1
+eikins$White <- as.numeric(eikins$White)
+
+eikins$Latino[eikins$Race_4!="3. Hispanic"] <- 0
+eikins$Latino[eikins$Race_4=="3. Hispanic"] <- 1
+eikins$Latino <- as.numeric(eikins$Latino)
+
+# Political Efficacy
+eikins$efficacy[eikins$R_impact_gov=="2. Disagree"] <- 0
+eikins$efficacy[eikins$R_impact_gov=="3. Neither agree nor disagree (1988 and later only)"] <- 1
+eikins$efficacy[eikins$R_impact_gov=="1. Agree"] <- 2
+
+
+#Graph of Avg Level of Political Activity, by level of education
+activity <- subset(eikins, !is.na(Voted) & !is.na(Political_Activity)) %>%
+  group_by(Year) %>%
+  mutate(    college.activity = mean(Political_Activity[college==1]),
+          highschool.activity = mean(Political_Activity[highschool==1]),
+         gradeschool.activity = mean(Political_Activity[gradeschool==1]),)
+
+ggplotly(ggplot() + 
+           geom_line(data = activity, aes(x = Year, y =     college.activity, text = "<b>Avg. Level of Political Engagement</b>"), color = 'Blue') +
+           geom_line(data = activity, aes(x = Year, y =  highschool.activity, text = "<b>Avg. Level of Political Engagement</b>"), color = 'Pink') +
+           geom_line(data = activity, aes(x = Year, y = gradeschool.activity, text = "<b>Avg. Level of Political Engagement</b>"), color = 'Green') +
+           xlab('Year') +
+           ylab('Proportion Pop.') +
+           ggtitle("Avg. Political Engagement, by Level of Education (1950-2016)") +
+           theme(plot.title = element_text(size = 12)) +
+           theme(legend.title = element_blank()) +
+           theme(axis.title=element_text(size=8)))
+```
+
+
+### Education and Campaign Work (Regression)
+```{r}
+# Logit Regression of Level of Education and income on Likelihood of Engaging in Campaign Work
+# b) Construct model
+campaign_model <-  campaign_work ~ # Outcome of interest
+  highschool +
+  somecollege +
+  college +
+  Female +
+  Age +
+  Black +
+  Latino +
+  income_middlethird +
+  income_topthird +  
+  Year
+
+eikins2 <- glm(campaign_model, data = eikins) #Specify model
+
+eikins2_model <- tidy(eikins2, conf.int = TRUE) %>% 
+  filter(!str_detect(term, 'factor|Intercept'))
+
+new_order <- order(eikins2_model$estimate, decreasing = FALSE)
+eikins2_model$term <- as.character(eikins2_model$term)
+eikins2_model$term <- factor(eikins2_model$term, levels = eikins2_model$term[new_order])
+# plot coefficient plot
+
+eikins2_plot <- ggplot(eikins2_model, aes(x=term, y = estimate)) + 
+  geom_hline(yintercept=0, colour="#8C2318") +  # Line at 0
+  geom_pointrange(aes(ymin=conf.low, ymax=conf.high)) +  # Ranges for each coefficient
+  labs(x="", y="Coefficient Estimate", title="Logit of Education and Campaign Work") +
+  theme(plot.title = element_text(size = 6)) +
+  theme(legend.title = element_blank()) +
+  theme(axis.title=element_text(size=8)) +
+  coord_flip() +
+  theme_minimal()
+
+ggplotly(eikins2_plot)
+
+rm("eikins","activity","eikins2","eikins2_model","eikins2_plot")
+
+```
+
+
 Political Socialization {data-orientation=columns}
 ======================================================================================
 
